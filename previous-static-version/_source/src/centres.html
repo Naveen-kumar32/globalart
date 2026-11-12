@@ -1,0 +1,49 @@
+<!--{"title":"Find a Globalart Centre Near You — State, City & Area Locator","desc":"Search 150+ Globalart art centres across Tamil Nadu, Karnataka, Telangana, Delhi NCR, Kerala, Rajasthan, Pondicherry and West Bengal by state, city and area.","page":"centres","centres":true}-->
+<section class="phero bg-sky">
+  {{D:CLOUD|bob|left:5%;top:16%;width:140px}}
+  {{D:CLOUD|bob-2|right:8%;top:30%;width:110px}}
+  {{D:STAR|bob|right:20%;top:12%;width:46px}}
+  <div class="wrap">
+    <p class="crumbs" data-pop><a href="index.html">Home</a> / <span>Find a Centre</span></p>
+    <h1 class="display" data-split>Find a centre near you</h1>
+    <p class="lead" data-up>Pick your state, city and area to see Globalart centres close to home — then call them or book a free trial.</p>
+  </div>
+  {{WAVE_BOTTOM}}
+</section>
+
+<section class="section section--tight" style="padding-top:0;margin-top:-70px;z-index:3">
+  <div class="wrap">
+    <div class="card" style="box-shadow:var(--shadow-lg);padding:clamp(22px,3vw,36px)" data-up>
+      <form class="locator" id="locator">
+        <div><label for="lcState">📍 State</label><div class="select"><select id="lcState" data-loc="state"><option value="">All States</option></select></div></div>
+        <div><label for="lcCity">🏙️ City</label><div class="select"><select id="lcCity" data-loc="city" disabled><option value="">All Cities</option></select></div></div>
+        <div><label for="lcArea">🏡 Area</label><div class="select"><select id="lcArea" data-loc="area" disabled><option value="">All Areas</option></select></div></div>
+        <button class="btn btn--blue" type="submit">Search <span class="ico">🔍</span></button>
+      </form>
+      <div class="locator__search">
+        <div class="field"><label for="lcText" class="sr-only">Search by area, pincode or road</label><input id="lcText" type="search" placeholder="…or type an area, road or pincode (e.g. Adyar, 560037)" autocomplete="off" /></div>
+        <button class="btn btn--white" type="button" id="lcReset">↺ Reset</button>
+      </div>
+    </div>
+    <div class="state-chips" id="stateChips" aria-label="Quick filter by state"></div>
+
+    <div class="results__head"><h2 id="resultsTitle" aria-live="polite">All centres</h2><span class="chip" id="resultsCount">0 centres</span></div>
+    <div class="results" id="results"></div>
+    <div class="more"><button class="btn btn--ink" id="loadMore" hidden>Show more centres ↓</button></div>
+  </div>
+</section>
+
+<section class="section section--tight">
+  <div class="wrap split">
+    <div class="card card--sun" data-left>
+      <h3 class="h3">🏢 Head Office</h3>
+      <p style="margin:0 0 8px"><b>SIP Academy India Pvt. Ltd.</b><br/>#1, Ramakrishna Street, Kences Towers, 7th Floor, Off North Usman Road, T. Nagar, Chennai – 600 017</p>
+      <p style="margin:0"><a class="link-arrow" href="tel:04442023331">044-42023331</a> &nbsp; <a class="link-arrow" href="mailto:sipinfo@sipacademyindia.com">sipinfo@sipacademyindia.com</a></p>
+    </div>
+    <div class="card card--bubble" data-right>
+      <h3 class="h3">🤔 No centre near you yet?</h3>
+      <p>Be the one to bring Globalart to your neighbourhood — become a franchisee and start your own creative centre.</p>
+      <a href="franchise.html" class="btn btn--pink magnetic">Become a Franchisee <span class="ico">→</span></a>
+    </div>
+  </div>
+</section>
