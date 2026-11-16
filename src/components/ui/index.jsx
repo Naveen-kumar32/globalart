@@ -1,124 +1,367 @@
-import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { motion, useInView, useMotionValue, useSpring, useTransform, animate, useAnimationFrame, useReducedMotion } from "framer-motion";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useInView, useMotionValue, useMotionValueEvent, useScroll, useSpring, useTransform, animate, useReducedMotion } from "framer-motion";
 import CENTRES from "../../data/centres.js";
 
-const ease = [0.22, 1, 0.36, 1];
+export const ease = [0.22, 1, 0.36, 1];
+const media = (n) => ({ src: `/media/${n}.mp4`, poster: `/media/${n}.jpg` });
 
-/* ---------- 3D reveal on scroll ---------- */
-export function Reveal({ children, delay = 0, y = 70, rotateX = -28, className, style, as = "div", ...rest }) {
+/* ---------- Global pointer, as springy motion values (for depth parallax) ---------- */
+export function usePointer(stiffness = 60, damping = 20) {
+  const x = useMotionValue(0), y = useMotionValue(0);
+  useEffect(() => {
+    const m = (e) => { x.set((e.clientX / window.innerWidth) * 2 - 1); y.set((e.clientY / window.innerHeight) * 2 - 1); };
+    window.addEventListener("pointermove", m, { passive: true });
+    return () => window.removeEventListener("pointermove", m);
+  }, [x, y]);
+  return { x: useSpring(x, { stiffness, damping }), y: useSpring(y, { stiffness, damping }) };
+}
+
+/* ---------- Real footage: loads near the viewport, plays only while visible ---------- */
+export function Video({ name, className, style, eager = false, active = true, hoverPlay = false }) {
+  const ref = useRef(null);
+  const [near, setNear] = useState(eager);
+  const [seen, setSeen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  // hoverPlay: show the still frame, play only while the card is hovered / focused
+  useEffect(() => {
+    const host = hoverPlay && ref.current?.parentElement;
+    if (!host) return;
+    const on = () => setHovered(true), off = () => setHovered(false);
+    host.addEventListener("pointerenter", on); host.addEventListener("pointerleave", off);
+    host.addEventListener("focusin", on); host.addEventListener("focusout", off);
+    return () => { host.removeEventListener("pointerenter", on); host.removeEventListener("pointerleave", off); host.removeEventListener("focusin", on); host.removeEventListener("focusout", off); };
+  }, [hoverPlay]);
+  if (hoverPlay) active = active && hovered;
+  const reduce = useReducedMotion();
+  const m = media(name);
+  // Load when close to the screen; only decode/play while actually visible.
+  useEffect(() => {
+    const v = ref.current;
+    if (!v) return;
+    const pre = new IntersectionObserver(([e]) => e.isIntersecting && setNear(true), { rootMargin: "400px" });
+    const vis = new IntersectionObserver(([e]) => setSeen(e.isIntersecting), { threshold: 0.05 });
+    pre.observe(v); vis.observe(v);
+    return () => { pre.disconnect(); vis.disconnect(); };
+  }, []);
+  useEffect(() => {
+    const v = ref.current;
+    if (!v || !near) return;
+    if (seen && active && !reduce) v.play().catch(() => {});
+    else v.pause();
+  }, [seen, active, near, reduce]);
+  return (
+    <video ref={ref} className={className} style={style} poster={m.poster} muted loop playsInline preload={near ? "metadata" : "none"} aria-hidden="true">
+      {near && <source src={m.src} type="video/mp4" />}
+    </video>
+  );
+}
+
+/* ---------- Live timecode, like a camera viewfinder ---------- */
+export function Timecode({ label = "REC" }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const t0 = performance.now();
+    const id = setInterval(() => {
+      const f = Math.floor(((performance.now() - t0) / 1000) * 25);
+      const p = (n) => String(n).padStart(2, "0");
+      if (ref.current) ref.current.textContent = `${p(Math.floor(f / 90000) % 24)}:${p(Math.floor(f / 1500) % 60)}:${p(Math.floor(f / 25) % 60)}:${p(f % 25)}`;
+    }, 40);
+    return () => clearInterval(id);
+  }, []);
+  return <span className="tc mono"><i />{label} <span ref={ref}>00:00:00:00</span></span>;
+}
+
+/* ---------- Reveal: fade up out of soft focus ---------- */
+export function Reveal({ children, delay = 0, y = 30, className, style, as = "div", ...rest }) {
   const M = motion[as];
   return (
-    <M
-      className={className}
-      style={{ transformPerspective: 1100, ...style }}
-      initial={{ opacity: 0, y, rotateX, filter: "blur(10px)" }}
-      whileInView={{ opacity: 1, y: 0, rotateX: 0, filter: "blur(0px)" }}
+    <M className={className} style={style}
+      initial={{ opacity: 0, y }}
+      whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 1, ease, delay }}
-      {...rest}
-    >
+      transition={{ duration: 0.9, ease, delay }} {...rest}>
       {children}
     </M>
   );
 }
 
-export function Stagger({ children, className, style, gap = 0.08 }) {
+export function Stagger({ children, className, style, gap = 0.09 }) {
   return (
-    <motion.div className={className} style={style} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.15 }}
+    <motion.div className={className} style={style} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.12 }}
       variants={{ hidden: {}, show: { transition: { staggerChildren: gap } } }}>
       {children}
     </motion.div>
   );
 }
 export const item = {
-  hidden: { opacity: 0, y: 70, rotateX: -35, scale: 0.92 },
-  show: { opacity: 1, y: 0, rotateX: 0, scale: 1, transition: { duration: 0.9, ease } },
+  hidden: { opacity: 0, y: 40 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.9, ease } },
 };
 
-/* ---------- Split headline: words rise in ---------- */
-export function SplitHeading({ text, as = "h1", className = "h1", delay = 0.15, gradientWords = [] }) {
+/* ---------- Masked line headline. Wrap words in *stars* for the italic accent. ----------
+   Pass lines as an array; each line rises out of its own mask. */
+export function Lines({ lines, as = "h1", className = "h1", delay = 0.1, inView = false, style }) {
   const M = motion[as];
-  const words = text.split(" ");
+  const trigger = inView ? { whileInView: "show", viewport: { once: true, amount: 0.4 } } : { animate: "show" };
   return (
-    <M className={className} initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.07, delayChildren: delay } } }} aria-label={text}>
-      {words.map((w, i) => (
-        <span key={i}>
-          <span className="word" aria-hidden="true">
-            <motion.span className={gradientWords.includes(i) ? "grad-text" : undefined}
-              variants={{ hidden: { y: "110%", rotate: 8 }, show: { y: "0%", rotate: 0, transition: { duration: 0.9, ease } } }}>
-              {w}
-            </motion.span>
-          </span>
-          {i < words.length - 1 ? " " : ""}
+    <M className={className} style={style} initial="hidden" {...trigger} aria-label={lines.join(" ").replace(/\*/g, "")}
+      variants={{ show: { transition: { staggerChildren: 0.12, delayChildren: delay } } }}>
+      {lines.map((l, i) => (
+        <span className="line" key={i} aria-hidden="true">
+          <motion.span variants={{ hidden: { y: "105%", skewY: 4 }, show: { y: "0%", skewY: 0, transition: { duration: 1.2, ease } } }}>
+            {l.split(/(\*[^*]+\*)/).map((part, j) => part.startsWith("*") ? <em key={j}>{part.slice(1, -1)}</em> : part)}
+          </motion.span>
         </span>
       ))}
     </M>
   );
 }
 
-/* ---------- Tilt card (3D + glare) ---------- */
-export function TiltCard({ children, className = "", style, max = 12, glare = true, ...rest }) {
+/* ---------- Paragraph whose words light up as you scroll through it ---------- */
+function LitWord({ children, progress, range }) {
+  const o = useTransform(progress, range, [0.16, 1]);
+  return <motion.span style={{ opacity: o }}>{children}</motion.span>;
+}
+export function ScrollLit({ text, className = "statement" }) {
   const ref = useRef(null);
-  const reduce = useReducedMotion();
-  const rx = useSpring(0, { stiffness: 200, damping: 18 });
-  const ry = useSpring(0, { stiffness: 200, damping: 18 });
-  const gx = useMotionValue(50), gy = useMotionValue(50);
-  const bg = useTransform([gx, gy], ([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255,255,255,.55), transparent 50%)`);
-  const onMove = (e) => {
-    if (reduce || !ref.current) return;
-    const r = ref.current.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-    ry.set((px - 0.5) * max * 2); rx.set((0.5 - py) * max * 2); gx.set(px * 100); gy.set(py * 100);
-  };
-  const reset = () => { rx.set(0); ry.set(0); };
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 0.85", "end 0.45"] });
+  const words = text.split(" ");
   return (
-    <motion.div ref={ref} className={`tilt ${className}`} style={{ ...style, rotateX: rx, rotateY: ry, transformPerspective: 900 }} onPointerMove={onMove} onPointerLeave={reset} {...rest}>
-      {children}
-      {glare && <motion.div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none", background: bg, mixBlendMode: "soft-light" }} />}
-    </motion.div>
+    <p ref={ref} className={className}>
+      {words.map((w, i) => {
+        const accent = w.startsWith("*");
+        const clean = w.replace(/\*/g, "");
+        const s = i / words.length;
+        return (
+          <span key={i}>
+            <LitWord progress={scrollYProgress} range={[s, s + 1 / words.length]}>{accent ? <em>{clean}</em> : clean}</LitWord>{" "}
+          </span>
+        );
+      })}
+    </p>
   );
 }
 
-/* ---------- Living image: real-time liquid motion + 3D tilt + ken burns ---------- */
-export function LivingImage({ src, alt, ratio = "4/3", position = "50% 50%", strength = 14, className = "", children, style }) {
-  const id = useId().replace(/:/g, "");
-  const [hover, setHover] = useState(false);
-  const reduce = useReducedMotion();
+/* ---------- Full-screen cinematic hero with depth parallax ---------- */
+export function FilmHero({ video, img, alt = "", children, className = "hero", hud = false, scene = "Scene 01", place = "Globalart studio" }) {
   const ref = useRef(null);
-  const rx = useSpring(0, { stiffness: 150, damping: 16 }), ry = useSpring(0, { stiffness: 150, damping: 16 });
-  const scale = useRef(null);
-  const cur = useRef(strength);
-  useEffect(() => {
-    if (!scale.current || reduce) return;
-    const c = animate(cur.current, hover ? strength * 2.6 : strength, {
-      duration: 0.8,
-      onUpdate: (v) => { cur.current = v; scale.current?.setAttribute("scale", v.toFixed(2)); },
-    });
-    return () => c.stop();
-  }, [hover, strength, reduce]);
-  const move = (e) => {
-    const r = ref.current.getBoundingClientRect();
-    const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
-    ry.set((px - 0.5) * 16); rx.set((0.5 - py) * 16);
-    ref.current.style.setProperty("--gx", px * 100 + "%"); ref.current.style.setProperty("--gy", py * 100 + "%");
-  };
+  const p = usePointer();
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const scale = useTransform(scrollYProgress, [0, 1], [1.06, 1.18]);
+  const vy = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
+  const ty = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
+  const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const mx = useTransform(p.x, (v) => v * -12), my = useTransform(p.y, (v) => v * -8);
+  const tx = useTransform(p.x, (v) => v * 6), tyy = useTransform(p.y, (v) => v * 4);
   return (
-    <motion.div ref={ref} className={`living ${className}`} style={{ rotateX: rx, rotateY: ry, transformPerspective: 1000, aspectRatio: ratio, ...style }}
-      onPointerMove={move} onPointerEnter={() => setHover(true)} onPointerLeave={() => { setHover(false); rx.set(0); ry.set(0); }}>
-      <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
-        <filter id={`liq${id}`} x="-5%" y="-5%" width="110%" height="110%">
-          <feTurbulence type="fractalNoise" baseFrequency="0.009 0.014" numOctaves="2" seed="3" result="n">
-            {!reduce && <animate attributeName="baseFrequency" dur="14s" values="0.009 0.014;0.014 0.009;0.009 0.014" repeatCount="indefinite" />}
-          </feTurbulence>
-          <feDisplacementMap ref={scale} in="SourceGraphic" in2="n" scale={reduce ? 0 : strength} xChannelSelector="R" yChannelSelector="G" />
+    <section ref={ref} className={className}>
+      <motion.div className="hero__media" style={{ scale, y: vy }}
+        initial={{ clipPath: "inset(30% 0% 30% 0%)", opacity: 0 }}
+        animate={{ clipPath: "inset(0% 0% 0% 0%)", opacity: 1 }}
+        transition={{ duration: 1.4, ease: [0.76, 0, 0.24, 1] }}>
+        <motion.div style={{ width: "100%", height: "100%", x: mx, y: my }}>{img ? <img src={`/media/${img}.jpg`} alt={alt} /> : <Video name={video} eager />}</motion.div>
+      </motion.div>
+      <div className="shade-b" style={{ background: "linear-gradient(180deg, rgba(22,25,27,.4), rgba(22,25,27,.08) 30%, rgba(22,25,27,.3) 55%, rgba(22,25,27,.85))" }} />
+      {hud && (
+        <motion.div className="hero__hud" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.6 }}>
+          <div className="container mono"><Timecode /><span className="hide-sm">{scene} — {place}</span><span>4K · 25 FPS</span></div>
+        </motion.div>
+      )}
+      <motion.div className="hero__inner" style={{ y: ty, opacity: fade }}>
+        <motion.div className="container" style={{ x: tx, y: tyy }}>{children}</motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+/* ---------- Pencil-sketch filter (rendered once in App) ---------- */
+export function SketchDefs() {
+  return (
+    <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true" focusable="false">
+      <defs>
+        <filter id="ga-sketch" colorInterpolationFilters="sRGB">
+          <feColorMatrix type="saturate" values="0" />
+          <feGaussianBlur stdDeviation="0.7" />
+          <feConvolveMatrix order="3" kernelMatrix="-1 -1 -1 -1 8 -1 -1 -1 -1" preserveAlpha="true" />
+          <feComponentTransfer>
+            <feFuncR type="linear" slope="-4.5" intercept="1" />
+            <feFuncG type="linear" slope="-4.5" intercept="1" />
+            <feFuncB type="linear" slope="-4.5" intercept="1" />
+          </feComponentTransfer>
         </filter>
-      </svg>
-      <div className="living__frame">
-        <img src={src} alt={alt} loading="lazy" style={{ objectPosition: position, filter: `url(#liq${id})` }} />
-      </div>
-      <div className="living__glare" />
+      </defs>
+    </svg>
+  );
+}
+
+/** A photo or a video (with its poster) — `m` is { img } or { video }. */
+export function Media({ m, alt = "", className = "fill", eager = false }) {
+  return m.img ? <img className={className} src={`/media/${m.img}.jpg`} alt={alt} loading={eager ? "eager" : "lazy"} /> : <Video name={m.video} className={className} eager={eager} />;
+}
+
+/**
+ * Sketch → colour: the picture starts as a pencil drawing; colour is painted across it as
+ * `progress` (a motion value 0..1) rises. Fully reversible — scrolling back turns it into a sketch again.
+ */
+export function SketchReveal({ m, progress, from = "left", alt = "", className = "", radius = 22, children, eager = false }) {
+  const poster = `/media/${m.img || m.video}.jpg`;
+  const clipPath = useTransform(progress, (v) => {
+    const hidden = ((1 - v) * 100).toFixed(2);
+    return from === "left" ? `inset(0% ${hidden}% 0% 0% round ${radius}px)` : `inset(0% 0% 0% ${hidden}% round ${radius}px)`;
+  });
+  const edgeX = useTransform(progress, (v) => `${(from === "left" ? v : 1 - v) * 100}%`);
+  const edgeO = useTransform(progress, [0, 0.03, 0.97, 1], [0, 1, 1, 0]);
+  return (
+    <div className={`sketch ${className}`} style={{ borderRadius: radius }}>
+      <img className="sketch__pencil" src={poster} alt="" aria-hidden="true" loading={eager ? "eager" : "lazy"} />
+      <motion.div className="sketch__colour" style={{ clipPath }}><Media m={m} alt={alt} eager={eager} /></motion.div>
+      <motion.div className="sketch__edge" style={{ x: edgeX, opacity: edgeO }} aria-hidden="true"><i /></motion.div>
       {children}
-    </motion.div>
+    </div>
+  );
+}
+
+/* ---------- Sticky story: chapters crossfade between films as you scroll ---------- */
+export function StoryScroller({ chapters }) {
+  const ref = useRef(null);
+  const [i, setI] = useState(0);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  useMotionValueEvent(scrollYProgress, "change", (v) => setI(Math.min(chapters.length - 1, Math.max(0, Math.floor(v * chapters.length)))));
+  const zoom = useTransform(scrollYProgress, [0, 1], [1.02, 1.1]);
+  return (
+    <section ref={ref} className="story" style={{ height: `${chapters.length * 85}vh` }}>
+      <div className="story__stick">
+        <motion.div className="story__vid" style={{ scale: zoom }}>
+          {chapters.map((c, k) => (
+            <motion.div key={c.video} style={{ position: "absolute", inset: 0 }} animate={{ opacity: k === i ? 1 : 0 }} transition={{ duration: 0.9, ease }}>
+              {Math.abs(k - i) <= 1 && <Video name={c.video} className="fill" active={k === i} />}
+            </motion.div>
+          ))}
+        </motion.div>
+        <div className="shade-b" />
+        <AnimatePresence mode="wait">
+          <motion.div key={i} className="story__num" initial={{ opacity: 0, y: 60 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -60 }} transition={{ duration: 0.8, ease }}>0{i + 1}</motion.div>
+        </AnimatePresence>
+        <div className="story__bars">
+          {chapters.map((_, k) => <i key={k}><motion.b animate={{ scaleY: k <= i ? 1 : 0 }} initial={false} transition={{ duration: 0.6, ease }} /></i>)}
+        </div>
+        <div className="story__copy">
+          <div className="container">
+            <AnimatePresence mode="wait">
+              <motion.div key={i} initial="hidden" animate="show" exit="exit"
+                variants={{ show: { transition: { staggerChildren: 0.08 } }, exit: { opacity: 0, y: -20, transition: { duration: 0.35 } } }}>
+                <motion.div className="story__label mono" variants={item}><span>Chapter 0{i + 1} / 0{chapters.length}</span><span>{chapters[i].tag}</span></motion.div>
+                <motion.h2 className="display" variants={item}>{chapters[i].title}</motion.h2>
+                <motion.p className="lead" style={{ color: "rgba(237,231,221,.82)" }} variants={item}>{chapters[i].text}</motion.p>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- A framed film that opens up to full screen as you scroll ---------- */
+export function ExpandFilm({ video, top, bottom, caption }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const ins = useTransform(scrollYProgress, [0, 0.6], [22, 4]);
+  const insX = useTransform(scrollYProgress, [0, 0.6], [30, 4]);
+  const rad = useTransform(scrollYProgress, [0, 0.6], [24, 24]);
+  const clip = useTransform([ins, insX, rad], ([a, b, r]) => `inset(${a}% ${b}% ${a}% ${b}% round ${r}px)`);
+  const sc = useTransform(scrollYProgress, [0, 0.6], [1.15, 1]);
+  const l = useTransform(scrollYProgress, [0, 0.6], ["0vw", "-14vw"]);
+  const r = useTransform(scrollYProgress, [0, 0.6], ["0vw", "14vw"]);
+  const titleO = useTransform(scrollYProgress, [0.45, 0.62], [1, 0]);
+  const capO = useTransform(scrollYProgress, [0.62, 0.78], [0, 1]);
+  const capY = useTransform(scrollYProgress, [0.62, 0.78], [40, 0]);
+  return (
+    <section ref={ref} className="expand">
+      <div className="expand__stick">
+        <motion.div className="expand__media" style={{ clipPath: clip }}>
+          <motion.div style={{ position: "absolute", inset: 0, scale: sc }}><Video name={video} className="fill" /></motion.div>
+          <div className="shade-b" />
+        </motion.div>
+        <motion.div className="expand__title" style={{ opacity: titleO }}>
+          <motion.span className="display" style={{ x: l }}>{top}</motion.span>
+          <motion.span className="display" style={{ x: r, fontStyle: "italic" }}>{bottom}</motion.span>
+        </motion.div>
+        <motion.div className="expand__caption" style={{ opacity: capO, y: capY }}><div className="container">{caption}</div></motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Vertical scroll drives a horizontal film reel ---------- */
+export function Reel({ children, head }) {
+  const ref = useRef(null);
+  const track = useRef(null);
+  const [dist, setDist] = useState(0);
+  useLayoutEffect(() => {
+    const f = () => track.current && setDist(Math.max(0, track.current.scrollWidth - window.innerWidth));
+    f(); window.addEventListener("resize", f);
+    return () => window.removeEventListener("resize", f);
+  }, []);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const x = useTransform(scrollYProgress, [0, 1], [0, -dist]);
+  const bar = useTransform(scrollYProgress, [0, 1], [0, 1]);
+  return (
+    <section ref={ref} className="reel" style={{ height: `calc(100svh + ${dist}px)` }}>
+      <div className="reel__stick">
+        <div className="container" style={{ marginBottom: "clamp(24px,4vh,48px)" }}>{head}</div>
+        <motion.div ref={track} className="reel__track" style={{ x }}>{children}</motion.div>
+        <div className="container" style={{ marginTop: 30 }}>
+          <div style={{ height: 1, background: "var(--line)", position: "relative" }}><motion.div style={{ position: "absolute", inset: 0, background: "var(--accent)", scaleX: bar, transformOrigin: "left" }} /></div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------- Image/video with scroll parallax inside its frame ---------- */
+export function ParallaxMedia({ video, img, alt = "", ratio = "4/5", className = "", radius = "var(--r)", children, strength = 7 }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 1], [`-${strength}%`, `${strength}%`]);
+  return (
+    <div ref={ref} className={`media ${className}`} style={{ aspectRatio: ratio, borderRadius: radius }}>
+      <motion.div style={{ position: "absolute", inset: `-${strength + 2}% 0`, y }}>
+        {video ? <Video name={video} className="fill" /> : <img className="fill" src={img} alt={alt} loading="lazy" />}
+      </motion.div>
+      {children}
+    </div>
+  );
+}
+
+/* ---------- Auto-advancing quote slider ---------- */
+export function QuoteSlider({ quotes, interval = 7000 }) {
+  const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused) return;
+    const t = setTimeout(() => setI((x) => (x + 1) % quotes.length), interval);
+    return () => clearTimeout(t);
+  }, [i, paused, interval, quotes.length]);
+  const q = quotes[i];
+  return (
+    <div onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}>
+      <AnimatePresence mode="wait">
+        <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.8, ease }}>
+          <blockquote className="quote">{q.text}</blockquote>
+          <div className="qmeta"><b>{q.name}</b><span>{q.meta}</span></div>
+        </motion.div>
+      </AnimatePresence>
+      <div className="qdots">
+        {quotes.map((_, k) => (
+          <button key={k} aria-label={`Quote ${k + 1}`} onClick={() => setI(k)}>
+            {k === i
+              ? <motion.b key={`on${i}${paused}`} initial={{ scaleX: 0 }} animate={{ scaleX: paused ? 0.15 : 1 }} transition={{ duration: paused ? 0.3 : interval / 1000, ease: "linear" }} />
+              : <b style={{ transform: `scaleX(${k < i ? 1 : 0})` }} />}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -129,16 +372,16 @@ export function Counter({ to, suffix = "", indian = false }) {
   const [v, setV] = useState(0);
   useEffect(() => {
     if (!inView) return;
-    const c = animate(0, to, { duration: 2, ease: [0.16, 1, 0.3, 1], onUpdate: (x) => setV(Math.round(x)) });
+    const c = animate(0, to, { duration: 2.4, ease: [0.16, 1, 0.3, 1], onUpdate: (x) => setV(Math.round(x)) });
     return () => c.stop();
   }, [inView, to]);
   return <b ref={ref}>{indian ? v.toLocaleString("en-IN") : v}{suffix}</b>;
 }
 
 /* ---------- Magnetic wrapper ---------- */
-export function Magnetic({ children, strength = 0.35 }) {
+export function Magnetic({ children, strength = 0.3 }) {
   const ref = useRef(null);
-  const x = useSpring(0, { stiffness: 220, damping: 14 }), y = useSpring(0, { stiffness: 220, damping: 14 });
+  const x = useSpring(0, { stiffness: 220, damping: 15 }), y = useSpring(0, { stiffness: 220, damping: 15 });
   return (
     <motion.span ref={ref} style={{ x, y, display: "inline-flex" }}
       onPointerMove={(e) => { const r = ref.current.getBoundingClientRect(); x.set((e.clientX - r.left - r.width / 2) * strength); y.set((e.clientY - r.top - r.height / 2) * strength); }}
@@ -148,53 +391,47 @@ export function Magnetic({ children, strength = 0.35 }) {
   );
 }
 
+/* ---------- Subtle 3D tilt with a light sweep (for glass cards) ---------- */
+export function Tilt({ children, className = "", style, max = 6, ...rest }) {
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  const rx = useSpring(0, { stiffness: 160, damping: 18 }), ry = useSpring(0, { stiffness: 160, damping: 18 });
+  const gx = useMotionValue(50), gy = useMotionValue(50);
+  const bg = useTransform([gx, gy], ([a, b]) => `radial-gradient(circle at ${a}% ${b}%, rgba(255,255,255,.14), transparent 55%)`);
+  return (
+    <motion.div ref={ref} className={className} style={{ ...style, rotateX: rx, rotateY: ry, transformPerspective: 1000 }}
+      onPointerMove={(e) => {
+        if (reduce) return;
+        const r = ref.current.getBoundingClientRect();
+        const a = (e.clientX - r.left) / r.width, b = (e.clientY - r.top) / r.height;
+        ry.set((a - 0.5) * max * 2); rx.set((0.5 - b) * max * 2); gx.set(a * 100); gy.set(b * 100);
+      }}
+      onPointerLeave={() => { rx.set(0); ry.set(0); }} {...rest}>
+      {children}
+      <motion.div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: "inherit", pointerEvents: "none", background: bg }} />
+    </motion.div>
+  );
+}
+
 /* ---------- Marquee ---------- */
-export function Marquee({ items, variant = "a" }) {
+export function Marquee({ items, reverse = false }) {
   const list = [...items, ...items];
   return (
-    <div className={`marquee marquee--${variant}`} aria-hidden="true">
-      <div className="marquee__track">{list.map((t, i) => <span key={i}>{t} <span style={{ opacity: 0.5 }}>✦</span></span>)}</div>
+    <div className={`marquee ${reverse ? "marquee--rev" : ""}`} aria-hidden="true">
+      <div className="marquee__track">{list.map((t, i) => <span key={i}>{t}</span>)}</div>
     </div>
   );
 }
 
-export function SectionHead({ eyebrow, icon = "✦", title, lead, children }) {
+export function Arrow() { return <span className="arrow" aria-hidden="true">→</span>; }
+
+export function SectionHead({ eyebrow, lines, lead, light, children }) {
   return (
-    <div className="section-head">
-      {eyebrow && <Reveal><p className="eyebrow"><b>{icon}</b>{eyebrow}</p></Reveal>}
-      <Reveal delay={0.05}><h2 className="h2">{title}</h2></Reveal>
+    <div style={{ maxWidth: 980 }}>
+      {eyebrow && <Reveal><p className="eyebrow">{eyebrow}</p></Reveal>}
+      <Lines lines={lines} as="h2" className="h2" inView />
       {lead && <Reveal delay={0.1}><p className="lead">{lead}</p></Reveal>}
       {children}
-    </div>
-  );
-}
-
-/* ---------- 3D ring carousel ---------- */
-export function RingCarousel({ items, render, radius = 520 }) {
-  const rot = useMotionValue(0);
-  const drag = useRef({ on: false, x: 0, v: 0 });
-  const reduce = useReducedMotion();
-  const [r, setR] = useState(radius);
-  useEffect(() => {
-    const f = () => setR(window.innerWidth < 600 ? radius * 0.62 : window.innerWidth < 1000 ? radius * 0.8 : radius);
-    f(); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f);
-  }, [radius]);
-  useAnimationFrame((_, dt) => {
-    if (drag.current.on) return;
-    drag.current.v *= 0.94;
-    rot.set(rot.get() + drag.current.v + (reduce ? 0 : dt * 0.006));
-  });
-  const n = items.length, step = 360 / n;
-  return (
-    <div className="ring-stage"
-      onPointerDown={(e) => { drag.current = { on: true, x: e.clientX, v: 0 }; e.currentTarget.setPointerCapture(e.pointerId); }}
-      onPointerMove={(e) => { if (!drag.current.on) return; const dx = e.clientX - drag.current.x; drag.current.x = e.clientX; drag.current.v = dx * 0.15; rot.set(rot.get() + dx * 0.15); }}
-      onPointerUp={() => (drag.current.on = false)} onPointerCancel={() => (drag.current.on = false)}>
-      <motion.div className="ring" style={{ z: -r, rotateY: rot }}>
-        {items.map((it, i) => (
-          <figure key={i} style={{ transform: `rotateY(${i * step}deg) translateZ(${r}px)` }}>{render(it, i)}</figure>
-        ))}
-      </motion.div>
     </div>
   );
 }
@@ -217,40 +454,26 @@ export function useLocator(init = {}) {
   return { state, city, area, setState, setCity, setArea, states, cities, areas, matches };
 }
 
-export function LocatorSelects({ loc, labels = true, placeholders = ["Select State", "Select City", "Select Area"], required = false, names = ["State", "City", "Centre area"] }) {
-  const Sel = ({ label, value, onChange, options, ph, disabled, name, emoji }) => (
-    <div className="field">
-      {labels ? <label>{emoji} {label}</label> : <label className="sr-only">{label}</label>}
-      <motion.div className="select" key={options.length + label} initial={{ scale: 0.97 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 12 }}>
+export function LocatorSelects({ loc, labels = true, placeholders = ["Select state", "Select city", "Select area"], required = false, names = ["State", "City", "Centre area"] }) {
+  const sel = ({ label, value, onChange, options, ph, disabled, name }) => (
+    <div className="field" key={label}>
+      {labels ? <label>{label}</label> : <label className="sr-only">{label}</label>}
+      <div className="select">
         <select aria-label={label} name={name} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} required={required}>
           <option value="">{ph}</option>
           {options.map((o) => <option key={o.v ?? o} value={o.v ?? o}>{o.v ? `${o.v} (${o.n})` : o}</option>)}
         </select>
-      </motion.div>
+      </div>
     </div>
   );
   return (
     <>
-      {Sel({ label: "State", value: loc.state, onChange: loc.setState, options: loc.states, ph: placeholders[0], name: names[0], emoji: "📍" })}
-      {Sel({ label: "City", value: loc.city, onChange: loc.setCity, options: loc.cities, ph: placeholders[1], disabled: !loc.state, name: names[1], emoji: "🏙️" })}
-      {Sel({ label: "Area", value: loc.area, onChange: loc.setArea, options: loc.areas, ph: placeholders[2], disabled: !loc.city, name: names[2], emoji: "🏡" })}
+      {sel({ label: "State", value: loc.state, onChange: loc.setState, options: loc.states, ph: placeholders[0], name: names[0] })}
+      {sel({ label: "City", value: loc.city, onChange: loc.setCity, options: loc.cities, ph: placeholders[1], disabled: !loc.state, name: names[1] })}
+      {sel({ label: "Area", value: loc.area, onChange: loc.setArea, options: loc.areas, ph: placeholders[2], disabled: !loc.city, name: names[2] })}
     </>
   );
 }
 
 export const phonesOf = (p) => (p || "").split(/[\/;,]/).map((x) => x.trim()).filter((x) => x.replace(/\D/g, "").length >= 8);
 export const mapsLink = (c) => "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(`${c.address || c.area}, ${c.city}, ${c.state}`);
-
-/* ---------- Confetti burst ---------- */
-export function burst(x, y, n = 40) {
-  if (typeof document === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const cols = ["#0095DA", "#7C5CFF", "#FF5CA8", "#FFC93C", "#2ED3A4"];
-  for (let i = 0; i < n; i++) {
-    const el = document.createElement("i");
-    el.style.cssText = `position:fixed;left:${x}px;top:${y}px;width:${8 + Math.random() * 8}px;height:${8 + Math.random() * 8}px;border-radius:${i % 2 ? "50%" : "3px"};background:${cols[i % cols.length]};z-index:999;pointer-events:none;box-shadow:inset 2px 2px 3px rgba(255,255,255,.6)`;
-    document.body.appendChild(el);
-    const a = Math.random() * Math.PI * 2, d = 120 + Math.random() * 260;
-    el.animate([{ transform: "translate(0,0) rotate(0)", opacity: 1 }, { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d + 200}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }],
-      { duration: 1300 + Math.random() * 600, easing: "cubic-bezier(.22,1,.36,1)" }).onfinish = () => el.remove();
-  }
-}

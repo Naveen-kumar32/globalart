@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useRef } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
-import { Aurora, Cursor, Navbar, Footer, Fab, ScrollProgress, PageShell, useSmoothScroll, lenisRef } from "./components/Layout.jsx";
+import { SketchDefs } from "./components/ui/index.jsx";
+import { Grain, Navbar, Footer, Fab, ScrollProgress, PageShell, useSmoothScroll, lenisRef, PAGE_NAMES } from "./components/Layout.jsx";
 
 const Home = lazy(() => import("./pages/Home.jsx"));
 const About = lazy(() => import("./pages/About.jsx"));
@@ -11,6 +12,9 @@ const Franchise = lazy(() => import("./pages/Franchise.jsx"));
 const Stories = lazy(() => import("./pages/Stories.jsx"));
 const Faq = lazy(() => import("./pages/Faq.jsx"));
 const Contact = lazy(() => import("./pages/Contact.jsx"));
+const Login = lazy(() => import("./pages/Login.jsx"));
+const Admin = lazy(() => import("./pages/Admin.jsx"));
+const Staff = lazy(() => import("./pages/Staff.jsx"));
 
 const TITLES = {
   "/": "Globalart India — Art & Creativity Classes for Kids 5–15 | Think Creative",
@@ -21,7 +25,11 @@ const TITLES = {
   "/stories": "Parent Stories — Globalart",
   "/faq": "FAQs — Globalart",
   "/contact": "Contact Globalart & Book a Free Trial Class",
+  "/login": "Staff sign in — Globalart",
+  "/admin": "Staff access — Globalart admin",
+  "/staff": "Staff portal — Globalart",
 };
+const APP_ROUTES = ["/login", "/admin", "/staff"];
 
 function ScrollToHash() {
   const { hash, pathname } = useLocation();
@@ -48,12 +56,11 @@ export default function App() {
   const resetScroll = () => { lenisRef.current ? lenisRef.current.scrollTo(0, { immediate: true }) : window.scrollTo(0, 0); };
   return (
     <>
-      <Aurora />
       <ScrollProgress />
       <Navbar />
       <ScrollToHash />
       <AnimatePresence mode="wait" onExitComplete={resetScroll}>
-        <PageShell key={location.pathname}>
+        <PageShell key={location.pathname} name={PAGE_NAMES[location.pathname] || "Globalart"}>
           <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
             <Routes location={location}>
               <Route path="/" element={<Home />} />
@@ -64,14 +71,18 @@ export default function App() {
               <Route path="/stories" element={<Stories />} />
               <Route path="/faq" element={<Faq />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/staff" element={<Staff />} />
               <Route path="*" element={<Home />} />
             </Routes>
           </Suspense>
-          <Footer />
+          {!APP_ROUTES.includes(location.pathname) && <Footer />}
         </PageShell>
       </AnimatePresence>
       <Fab />
-      <Cursor />
+      <Grain />
+      <SketchDefs />
     </>
   );
 }

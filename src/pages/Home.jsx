@@ -1,64 +1,375 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { AnimatePresence, motion, useScroll, useTransform, useSpring } from "framer-motion";
-import { HomeScene, GlobeScene } from "../components/three/Scenes.jsx";
-import { Reveal, SplitHeading, TiltCard, LivingImage, Counter, Magnetic, Marquee, SectionHead, Stagger, item, RingCarousel, useLocator, LocatorSelects } from "../components/ui/index.jsx";
-import { BENEFITS, COURSES, STATS, TESTIMONIALS, LINKS } from "../data/content.js";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useScroll, useTransform } from "framer-motion";
+import { Reveal, Video, Counter, Magnetic, Arrow, SectionHead, Lines, SketchReveal, Media, useLocator, LocatorSelects, ALL_CENTRES } from "../components/ui/index.jsx";
+import { STATS, BENEFITS, COURSES, TESTIMONIALS, COURSE_MEDIA, ENDORSEMENTS, EXPERTS, CAREERS } from "../data/content.js";
 
-const WORDS = ["draw ✏️", "imagine 💭", "create ✨", "express 💬", "shine 🌟"];
-
-function Rotator() {
-  const [i, setI] = useState(0);
-  useEffect(() => { const t = setInterval(() => setI((x) => (x + 1) % WORDS.length), 2200); return () => clearInterval(t); }, []);
+/* ==========================================================================
+   1. Opening — a pencil draws the frame, the photo appears as a sketch, then colour is painted in
+   ========================================================================== */
+function SketchHero() {
+  const ref = useRef(null);
+  const paint = useMotionValue(0);
+  useEffect(() => {
+    const c = animate(paint, 1, { duration: 2.4, delay: 1.5, ease: [0.65, 0, 0.35, 1] });
+    return () => c.stop();
+  }, [paint]);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end start"] });
+  const frameY = useTransform(p, [0, 1], [0, 80]);
+  const cardY = useTransform(p, [0, 1], [0, -60]);
+  const statY = useTransform(p, [0, 1], [0, 40]);
   return (
-    <span className="hero__rot">
-      <AnimatePresence mode="popLayout">
-        <motion.span key={i} className="grad-text" initial={{ y: "100%", rotateX: -90, opacity: 0 }} animate={{ y: "0%", rotateX: 0, opacity: 1 }} exit={{ y: "-100%", rotateX: 90, opacity: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} style={{ display: "inline-block", fontWeight: 800 }}>
-          {WORDS[i]}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
-}
+    <section ref={ref} className="shero">
+      <div className="container shero__grid">
+        <div className="shero__copy">
+          <motion.p className="eyebrow" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}>Art & creativity programme · Ages 5–15</motion.p>
+          <Lines lines={["Every great mind", "begins with a", "single line."]} className="display" delay={0.55} />
+          <svg className="shero__stroke" viewBox="0 0 420 24" preserveAspectRatio="none" aria-hidden="true">
+            <motion.path d="M4 16 C 90 6, 180 22, 260 12 S 380 8, 416 14" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, delay: 1.2, ease: [0.65, 0, 0.35, 1] }} />
+          </svg>
+          <motion.p className="lead" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.3, duration: 0.8 }}>
+            A structured 13-level programme that grows imagination, observation and confidence — taught in small batches by trained teachers at {ALL_CENTRES.length} centres across India.
+          </motion.p>
+          <motion.div className="btns" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.45, duration: 0.8 }}>
+            <Magnetic><Link to="/contact#book" className="btn btn--lg">Book a free trial class <Arrow /></Link></Magnetic>
+            <a href="#journey" className="btn btn--ghost btn--lg">See the journey</a>
+          </motion.div>
+          <motion.ul className="shero__trust" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.7 }}>
+            <li><b>22</b> countries</li><li><b>650+</b> centres</li><li><b>Since 1999</b></li>
+          </motion.ul>
+        </div>
 
-function Hero() {
-  return (
-    <section className="hero">
-      <div className="hero__3d"><HomeScene /></div>
-      <div className="container hero__grid">
-        <div>
-          <Reveal><p className="eyebrow"><b>🎨</b>Since 1999 · 22 countries · Ages 5–15</p></Reveal>
-          <SplitHeading text="Where little artists grow big imaginations" gradientWords={[4, 5]} />
-          <Reveal delay={0.5}><p className="h3" style={{ fontWeight: 600, margin: "6px 0 18px" }}>Your child learns to <Rotator /></p></Reveal>
-          <Reveal delay={0.6}><p className="lead">Globalart is the first systematic, step-by-step art programme — designed so every child, even one who “can’t draw”, discovers the artist inside.</p></Reveal>
-          <Reveal delay={0.7}>
-            <div className="btns" style={{ marginTop: 30 }}>
-              <Magnetic><Link to="/contact#book" className="btn btn--lg">Book a Free Trial <span className="arr">→</span></Link></Magnetic>
-              <Magnetic><Link to="/centres" className="btn btn--glass btn--lg">📍 Centres near me</Link></Magnetic>
-            </div>
-          </Reveal>
-          <Reveal delay={0.8}>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 30 }}>
-              <div style={{ display: "flex" }}>{["#0095DA", "#FF5CA8", "#FFC93C", "#2ED3A4"].map((c, i) => <span key={c} className="avatar" style={{ background: c, marginLeft: i ? -14 : 0, border: "3px solid #fff", flexBasis: 44, width: 44, height: 44, fontSize: 18 }}>{["🧒", "👧", "👦", "🧒🏽"][i]}</span>)}</div>
-              <p style={{ margin: 0, fontWeight: 700, lineHeight: 1.3 }}><span className="grad-text" style={{ fontSize: 20 }}>2,75,000+</span><br /><span className="muted" style={{ fontSize: 14 }}>young artists worldwide</span></p>
-            </div>
-          </Reveal>
-        </div>
-        <div style={{ position: "relative", minHeight: 520 }}>
-          <motion.div className="hero__floating glass" style={{ right: "2%", top: "4%" }} initial={{ opacity: 0, scale: 0.6, rotate: -8 }} animate={{ opacity: 1, scale: 1, rotate: 0, y: [0, -10, 0] }} transition={{ delay: 1.2, y: { repeat: Infinity, duration: 4, ease: "easeInOut" } }}>
-            <span className="ico">🏆</span><span><b>Limca</b>Book of Records</span>
+        <motion.div className="shero__art" style={{ y: frameY }}>
+          <svg className="shero__outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <motion.rect x="0.6" y="0.6" width="98.8" height="98.8" rx="4" ry="5.5" initial={{ pathLength: 0, opacity: 1 }} animate={{ pathLength: 1, opacity: [1, 1, 0] }} transition={{ pathLength: { duration: 1.3, delay: 0.4, ease: [0.65, 0, 0.35, 1] }, opacity: { duration: 4.2, times: [0, 0.85, 1] } }} />
+          </svg>
+          <motion.div className="shero__frame" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0, duration: 0.8 }}>
+            <SketchReveal m={{ img: "art-class-india" }} alt="Children painting together in a Globalart class" progress={paint} eager />
           </motion.div>
-          <motion.div className="hero__floating glass" style={{ left: "6%", bottom: "6%" }} initial={{ opacity: 0, scale: 0.6, rotate: 8 }} animate={{ opacity: 1, scale: 1, rotate: 0, y: [0, 10, 0] }} transition={{ delay: 1.4, y: { repeat: Infinity, duration: 5, ease: "easeInOut" } }}>
-            <span className="ico">🎨</span><span><b>13 levels</b>from age 5 to 15</span>
+          <motion.div className="shero__card" style={{ y: cardY }} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 2.6, duration: 0.8 }}>
+            <div className="shero__card-media"><Video name="hands-drawing" className="fill" eager /></div>
+            <div><small>Stage 01 · Age 5</small><b>The first confident line</b></div>
           </motion.div>
-        </div>
+          <motion.div className="shero__stat" style={{ y: statY }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 2.9, duration: 0.8 }}>
+            <b>2,75,000+</b><span>children have learnt to think creatively with Globalart</span>
+          </motion.div>
+        </motion.div>
       </div>
-      <div className="scroll-hint"><i />scroll</div>
     </section>
   );
 }
 
-function QuickFinder() {
+/* ==========================================================================
+   2. The journey — one continuous line, ages 5 → 15
+   ========================================================================== */
+const STAGE_COPY = {
+  foundation: { title: "The first line becomes a habit.", gains: ["Fine motor control and a steady grip", "Confidence with colour", "Sitting focused through a full class"] },
+  prebasic: { title: "Learning to really look.", gains: ["Observation drawing", "Grid drawing and proportion", "Patience with detail"] },
+  basic: { title: "Ideas start to take shape.", gains: ["Composition and backgrounds", "Drawing action and movement", "Human features from every angle"] },
+  intermediate: { title: "Every picture tells a story.", gains: ["Themes, figures and professions", "Mixed-media colouring", "Scenes from their own life"] },
+  advanced: { title: "A confident, original creator.", gains: ["Pencil shading and sketching", "Painting technique", "Posters and illustration"] },
+};
+
+/** Heading whose words come into focus as it scrolls into view (scrubbed, not timed). */
+function ScrubTitle({ text }) {
+  const ref = useRef(null);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start 88%", "start 42%"] });
+  const words = text.split(" ");
+  return (
+    <h3 ref={ref} className="stage__title" aria-label={text}>
+      {words.map((w, i) => <ScrubWord key={i} p={p} i={i} n={words.length}>{w}</ScrubWord>)}
+    </h3>
+  );
+}
+function ScrubWord({ p, i, n, children }) {
+  const a = i / n, b = Math.min(1, a + 1.6 / n);
+  const opacity = useTransform(p, [a, b], [0.12, 1]);
+  const y = useTransform(p, [a, b], [18, 0]);
+  return <motion.span aria-hidden="true" style={{ opacity, y }}>{children}</motion.span>;
+}
+
+function Stage({ c, i, flip, nodeRef }) {
+  const media = useRef(null);
+  const { scrollYProgress: p } = useScroll({ target: media, offset: ["start 85%", "center 50%"] });
+  const gainO = useTransform(p, [0.8, 1], [0, 1]);
+  const gainY = useTransform(p, [0.8, 1], [20, 0]);
+  const copy = STAGE_COPY[c.id];
+  return (
+    <article className={`stage ${flip ? "stage--flip" : ""}`} id={`stage-${c.id}`}>
+      <span className="stage__node" ref={nodeRef} />
+      <div ref={media} className="stage__media">
+        {/* colour is painted in from the side nearest the journey line */}
+        <SketchReveal m={COURSE_MEDIA[c.id]} progress={p} from={flip ? "left" : "right"} alt={`${c.name} stage at a Globalart class`}>
+          <motion.div className="stage__gain" style={{ opacity: gainO, y: gainY }}>
+            <small>What your child gains</small>
+            <ul>{copy.gains.map((g) => <li key={g}>{g}</li>)}</ul>
+          </motion.div>
+        </SketchReveal>
+      </div>
+      <div>
+        <div className="stage__age"><b>Stage 0{i + 1}</b><span>{c.name} · {c.age}</span></div>
+        <ScrubTitle text={copy.title} />
+        <Reveal><p className="lead">{c.lead}</p></Reveal>
+        <Reveal delay={0.05}>
+          <div className="stage__levels">{c.levels.map(([l, d]) => <div key={l}><b>{l}</b><span>{d}</span></div>)}</div>
+        </Reveal>
+      </div>
+    </article>
+  );
+}
+
+function Journey() {
+  const section = useRef(null);
+  const svg = useRef(null);
+  const ink = useRef(null);
+  const tip = useRef(null);
+  const ageRef = useRef(null);
+  const barRef = useRef(null);
+  const nodeRefs = useRef([]);
+  const endRef = useRef(null);
+  const geo = useRef({ samples: [], len: 0, top: 0, nodeYs: [] });
+  const [box, setBox] = useState({ w: 0, h: 0, d: "" });
+  const [active, setActive] = useState(0);
+
+  // Build the path through each stage's node; re-measure on resize.
+  useLayoutEffect(() => {
+    const el = section.current;
+    if (!el) return;
+    const build = () => {
+      const r = el.getBoundingClientRect();
+      const w = el.offsetWidth, h = el.offsetHeight;
+      const mobile = window.innerWidth <= 880;
+      const cx = mobile ? Math.max(18, (w - Math.min(1200, w - 36)) / 2 + 10) : w / 2;
+      // keep the curve inside the gap between the two columns
+      const swing = mobile ? 8 : Math.min(60, w * 0.04);
+      const pts = [{ x: cx, y: Math.max(40, (nodeRefs.current[0]?.getBoundingClientRect().top ?? r.top) - r.top - window.innerHeight * 0.55) }];
+      nodeRefs.current.forEach((n) => n && pts.push({ x: cx, y: n.getBoundingClientRect().top - r.top }));
+      if (endRef.current) pts.push({ x: cx, y: endRef.current.getBoundingClientRect().top - r.top });
+      let d = `M ${pts[0].x} ${pts[0].y}`;
+      for (let k = 1; k < pts.length; k++) {
+        const a = pts[k - 1], b = pts[k], dy = b.y - a.y, s = k % 2 ? swing : -swing;
+        d += ` C ${a.x + s} ${a.y + dy * 0.45}, ${b.x + s} ${b.y - dy * 0.45}, ${b.x} ${b.y}`;
+      }
+      geo.current.top = r.top + window.scrollY;
+      geo.current.nodeYs = pts.slice(1, nodeRefs.current.length + 1).map((p) => p.y);
+      setBox({ w, h, d });
+    };
+    build();
+    const ro = new ResizeObserver(build);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Sample the path once per layout so scrolling only does a cheap lookup.
+  useEffect(() => {
+    const path = ink.current;
+    if (!path || !box.d) return;
+    const len = path.getTotalLength();
+    path.style.strokeDasharray = `${len} ${len}`;
+    const N = 600, samples = [];
+    for (let k = 0; k <= N; k++) { const l = (k / N) * len; const pt = path.getPointAtLength(l); samples.push([l, pt.x, pt.y]); }
+    geo.current.samples = samples; geo.current.len = len;
+    update(window.scrollY);
+  }, [box]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const update = (scrollY) => {
+    const { samples, len, top, nodeYs } = geo.current;
+    if (!samples.length) return;
+    const target = scrollY + window.innerHeight * 0.55 - top; // the pen follows the reader's eye line
+    let lo = 0, hi = samples.length - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; samples[mid][2] < target ? (lo = mid + 1) : (hi = mid); }
+    const [l, x, y] = samples[lo];
+    ink.current.style.strokeDashoffset = `${len - l}`;
+    tip.current.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    tip.current.style.opacity = target < samples[0][2] ? 0 : 1;
+    const first = nodeYs[0] ?? 0, last = nodeYs[nodeYs.length - 1] ?? 1;
+    const t = Math.min(1, Math.max(0, (target - first) / (last - first)));
+    if (ageRef.current) ageRef.current.textContent = String(Math.round(5 + t * 10));
+    if (barRef.current) barRef.current.style.transform = `scaleX(${t})`;
+    let idx = 0;
+    nodeYs.forEach((ny, k) => { if (target >= ny - window.innerHeight * 0.25) idx = k; });
+    setActive((cur) => (cur === idx ? cur : idx));
+  };
+  const { scrollY } = useScroll();
+  useMotionValueEvent(scrollY, "change", update);
+
+  return (
+    <section ref={section} className="journey" id="journey">
+      <svg ref={svg} className="journey__svg" width={box.w} height={box.h} viewBox={`0 0 ${box.w || 1} ${box.h || 1}`} aria-hidden="true">
+        <path className="journey__track" d={box.d} />
+        <path ref={ink} className="journey__ink" d={box.d} />
+      </svg>
+      <span ref={tip} className="journey__tip" aria-hidden="true" />
+
+      <div className="journey__rail" aria-hidden="true">
+        <div className="rail">
+          <div className="rail__age"><small>Age</small><b ref={ageRef}>5</b></div>
+          <div className="rail__info">
+            <span>{COURSES[active].name}</span>
+            <i><b ref={barRef} style={{ transform: "scaleX(0)" }} /></i>
+            <small>Stage {active + 1} of {COURSES.length}</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="container">
+        <div className="journey__intro">
+          <SectionHead eyebrow="The journey" lines={["Ten years. Five stages.", "One growing *creative mind.*"]} lead="Scroll through the path every Globalart child follows — from a five-year-old’s first confident line to a teenager’s original illustration." />
+        </div>
+        {COURSES.map((c, i) => <Stage key={c.id} c={c} i={i} flip={i % 2 === 1} nodeRef={(el) => (nodeRefs.current[i] = el)} />)}
+        <div className="journey__end" ref={endRef}>
+          <p className="eyebrow">Age 15 and beyond</p>
+          <h3 className="h2" style={{ maxWidth: "18ch", margin: "0 auto" }}>Creativity that opens <em>real careers.</em></h3>
+          <div className="careers">{CAREERS.map((c) => <span key={c} className="chip">{c}</span>)}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ==========================================================================
+   3. Six abilities — pinned list, scrubbed by scroll
+   ========================================================================== */
+const ROW = 92;
+function Abilities() {
+  const ref = useRef(null);
+  const n = BENEFITS.length;
+  const [idx, setIdx] = useState(0);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  useMotionValueEvent(p, "change", (v) => { const k = Math.min(n - 1, Math.max(0, Math.round(v * (n - 1)))); setIdx((c) => (c === k ? c : k)); });
+  const y = useTransform(p, (v) => -(v * (n - 1)) * ROW - ROW / 2);
+  const radius = useTransform(p, [0, 0.5, 1], ["50%", "28px", "28px"]);
+  const mediaScale = useTransform(p, [0, 0.5], [0.82, 1]);
+  return (
+    <section ref={ref} className="abil" style={{ height: `${100 + n * 55}vh` }}>
+      <div className="abil__stick">
+        <div className="container abil__grid">
+          <div>
+            <p className="eyebrow">What parents notice</p>
+            <div className="abil__count mono"><span>0{idx + 1} / 0{n}</span><i><motion.b style={{ scaleX: p }} /></i></div>
+            <div className="abil__list">
+              <motion.div className="abil__track" style={{ y }}>
+                {BENEFITS.map((b, k) => <div key={b.title} className={`abil__item ${k === idx ? "is-on" : ""}`}><small>0{k + 1}</small>{b.title}</div>)}
+              </motion.div>
+            </div>
+          </div>
+          <div className="abil__side">
+            <motion.div className="abil__media" style={{ borderRadius: radius, scale: mediaScale }}><Video name="teacher-drawing" className="fill" /></motion.div>
+            <div className="abil__text">
+              <AnimatePresence mode="wait">
+                <motion.p key={idx} style={{ margin: 0 }} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.35 }}>{BENEFITS[idx].text}</motion.p>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ==========================================================================
+   4. Proof
+   ========================================================================== */
+function Proof() {
+  return (
+    <section className="section">
+      <div className="container">
+        <SectionHead eyebrow="Trusted for over two decades" lines={["Proven with 2,75,000+ children", "in *22 countries.*"]} />
+        <div className="stats" style={{ marginTop: 56 }}>
+          {STATS.map((s) => <Reveal key={s.label} className="stat"><Counter to={s.value} suffix={s.suffix} indian={s.indian} /><span>{s.label}</span></Reveal>)}
+        </div>
+        <Reveal><div className="proof__logos">{ENDORSEMENTS.map((e) => <div key={e.title}><b>{e.title}</b><span>{e.meta}</span></div>)}</div></Reveal>
+        <div className="grid g2" style={{ marginTop: 70, gap: 50 }}>
+          {EXPERTS.map((x, k) => (
+            <Reveal key={x.name} delay={k * 0.08}>
+              <blockquote className="quote">{x.text}</blockquote>
+              <div className="qmeta"><b>{x.name}</b><span>{x.meta}</span></div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ==========================================================================
+   5. How joining works — a connector line lights each step
+   ========================================================================== */
+const STEPS = [
+  ["Find a centre", `Choose from ${ALL_CENTRES.length} centres across India — most families have one close to home.`],
+  ["Book a free trial", "Your child joins a real class with other children. No cost and no obligation."],
+  ["Start at the right level", "The centre recommends the starting level that suits your child’s age and ability."],
+  ["Grow every week", "Small batches and trained teachers — with progress you can see in every artwork."],
+];
+function Steps() {
+  const ref = useRef(null);
+  const [lit, setLit] = useState(-1);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start 80%", "end 60%"] });
+  useMotionValueEvent(p, "change", (v) => { const k = Math.floor(v * (STEPS.length - 1) + 0.05); setLit((c) => (c === k ? c : k)); });
+  return (
+    <section className="section light">
+      <div className="container">
+        <SectionHead eyebrow="Joining is simple" lines={["From first visit", "to *first artwork.*"]} />
+        <div className="steps" ref={ref}>
+          <div className="steps__line"><motion.b style={{ scaleX: p }} /></div>
+          {STEPS.map(([t, d], k) => (
+            <div key={t} className={`step ${k <= lit ? "is-on" : ""}`}>
+              <div className="step__dot">{k + 1}</div>
+              <h3>{t}</h3><p>{d}</p>
+            </div>
+          ))}
+        </div>
+        <div className="btns"><Link to="/contact#book" className="btn btn--lg">Book a free trial class <Arrow /></Link><Link to="/centres" className="btn btn--ghost btn--lg">Find a centre</Link></div>
+      </div>
+    </section>
+  );
+}
+
+/* ==========================================================================
+   6. Parent voices — cards peel off the stack as you scroll
+   ========================================================================== */
+function DeckCard({ t, i, n, p }) {
+  const transform = useTransform(p, (v) => {
+    const k = v * (n - 1) - i; // <0 waiting in the pile, 0..1 leaving, >1 gone
+    if (k < 0) { const d = Math.min(3, -k); return `translate3d(0, ${d * 16}px, 0) scale(${1 - d * 0.045})`; }
+    if (i === n - 1) return "none";
+    const e = Math.min(1, k);
+    return `translate3d(${e * -12}%, ${e * -125}%, 0) rotate(${e * -9}deg)`;
+  });
+  const opacity = useTransform(p, (v) => { const k = v * (n - 1) - i; return k < -3 ? 0 : k > 1 ? 0 : 1; });
+  return (
+    <motion.div className="deck__card" style={{ transform, opacity, zIndex: n - i }}>
+      <p>{t.text}</p>
+      <div className="deck__who"><b>{t.name}</b><span>{t.meta}</span></div>
+    </motion.div>
+  );
+}
+function Voices() {
+  const ref = useRef(null);
+  const n = TESTIMONIALS.length;
+  const [idx, setIdx] = useState(0);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  useMotionValueEvent(p, "change", (v) => { const k = Math.min(n - 1, Math.round(v * (n - 1))); setIdx((c) => (c === k ? c : k)); });
+  return (
+    <section ref={ref} className="deck" style={{ height: `${100 + n * 38}vh` }}>
+      <div className="deck__stick">
+        <div className="container deck__grid">
+          <div>
+            <SectionHead eyebrow="Parents across India" lines={["What families", "*tell us.*"]} lead="Real words from parents in Chennai, Coimbatore, Bengaluru, Hyderabad, Delhi and Jaipur." />
+            <div className="deck__count" style={{ marginTop: 30 }}>{String(idx + 1).padStart(2, "0")}<span style={{ fontSize: "0.4em", color: "var(--grey-2)" }}> / {String(n).padStart(2, "0")}</span></div>
+            <Link to="/stories" className="btn btn--ghost" style={{ marginTop: 10 }}>All parent stories <Arrow /></Link>
+          </div>
+          <div className="deck__pile">{TESTIMONIALS.map((t, i) => <DeckCard key={t.name} t={t} i={i} n={n} p={p} />)}</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ==========================================================================
+   7. Centre finder
+   ========================================================================== */
+function Finder() {
   const loc = useLocator();
   const nav = useNavigate();
   const go = (e) => {
@@ -67,267 +378,57 @@ function QuickFinder() {
     if (loc.state) q.set("state", loc.state);
     if (loc.city) q.set("city", loc.city);
     if (loc.area) q.set("area", loc.area);
-    nav("/centres" + (q.toString() ? `?${q}` : ""));
+    nav(`/centres${q.toString() ? "?" + q : ""}`);
   };
   return (
-    <div className="container" style={{ position: "relative", zIndex: 5, marginTop: -30 }}>
-      <Reveal>
-        <form className="finder glass" onSubmit={go}>
-          <div className="finder__title"><span className="pin">📍</span><span>Find a Globalart<br />centre near you</span></div>
-          <LocatorSelects loc={loc} labels={false} />
-          <button className="btn btn--blue" type="submit">Show centres →</button>
-        </form>
-      </Reveal>
-    </div>
-  );
-}
-
-function About() {
-  return (
-    <section className="section">
+    <section className="section light">
       <div className="container split">
-        <Reveal rotateX={0} y={0} style={{ position: "relative" }}>
-          <div className="liquid" style={{ inset: "-8%", background: "linear-gradient(135deg,#9FD9FF,#D7C9FF,#FFC6E2)", opacity: 0.8 }} />
-          <LivingImage src="/assets/globalart-overview.jpg" alt="A Globalart student concentrating on her drawing" ratio="4/3" position="66% 30%">
-            <div className="living__badge glass pad" style={{ left: -24, bottom: 30, padding: "14px 18px", borderRadius: 22 }}><b style={{ fontFamily: "var(--f-display)", fontSize: 22 }}>Create,</b><br /><span className="muted" style={{ fontWeight: 700 }}>not copy ✨</span></div>
-            <div className="living__badge glass" style={{ right: -18, top: 28, padding: "12px 16px", borderRadius: 20, fontWeight: 800 }}>👩‍🏫 Small batches</div>
-          </LivingImage>
-        </Reveal>
         <div>
-          <Reveal><p className="eyebrow"><b>?</b>What is globalart</p></Reveal>
-          <Reveal delay={0.05}><h2 className="h2">More than art — a method for <span className="grad-text">creative minds</span></h2></Reveal>
-          <Reveal delay={0.1}><p className="lead">Started in 1999 by Mr. Mahair Goh, Globalart uses art and drawing to enhance creativity in children. Its step-by-step syllabus is designed for every student — even those with little artistic talent.</p></Reveal>
-          <Stagger className="grid g2" style={{ marginTop: 26 }}>
-            {["Structured, systematic curriculum", "International teaching standards", "Trained, child-friendly teachers", "Small batches, individual attention"].map((f, i) => (
-              <motion.div key={f} variants={item} className="neu" style={{ padding: "16px 18px", fontWeight: 700, display: "flex", gap: 12, alignItems: "center" }}>
-                <span className="clay-icon" style={{ "--c": ["#0095DA", "#FF5CA8", "#2ED3A4", "#FFC93C"][i], width: 42, height: 42, fontSize: 18, margin: 0, borderRadius: 14 }}>{["📘", "🌍", "👩‍🏫", "👥"][i]}</span>{f}
-              </motion.div>
-            ))}
-          </Stagger>
-          <Reveal delay={0.2}><div style={{ marginTop: 28 }}><Link to="/about" className="link">Our story →</Link></div></Reveal>
+          <SectionHead eyebrow={`${ALL_CENTRES.length} centres across India`} lines={["A Globalart centre,", "*close to home.*"]} lead="Choose your state, city and area to see the centres nearest you — with phone numbers and directions." />
+          <form className="form" onSubmit={go} style={{ marginTop: 36 }}>
+            <div className="row3"><LocatorSelects loc={loc} /></div>
+            <div className="row-between" style={{ alignItems: "center" }}>
+              <motion.span key={loc.matches.length} style={{ fontWeight: 600, fontSize: 18 }} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+                {loc.matches.length} centre{loc.matches.length === 1 ? "" : "s"} {loc.city ? `in ${loc.area || loc.city}` : loc.state ? `in ${loc.state}` : "nationwide"}
+              </motion.span>
+              <button className="btn btn--lg" type="submit">Show centres <Arrow /></button>
+            </div>
+          </form>
         </div>
+        <div className="media" style={{ aspectRatio: "4/3", borderRadius: 20 }}><Media m={{ img: "teacher-boy" }} alt="A teacher guiding a child’s drawing" /></div>
       </div>
     </section>
   );
 }
 
-function Benefits() {
-  return (
-    <section className="section" style={{ paddingTop: 0 }}>
-      <div className="container">
-        <SectionHead eyebrow="For parents" icon="💛" title={<>Why parents <span className="grad-text">love</span> Globalart</>} lead="A proven method that uses drawing & colour to build the skills your child needs everywhere — in school and in life." />
-        <Stagger className="grid g3">
-          {BENEFITS.map((b) => (
-            <motion.div key={b.title} variants={item} style={{ transformPerspective: 1000 }}>
-              <TiltCard className="clay" style={{ "--c": b.color, height: "100%" }}>
-                <div className="pop"><div className="clay-icon" style={{ "--c": b.color }}>{b.icon}</div><h3 className="h3">{b.title}</h3><p style={{ margin: 0, color: "var(--ink-2)" }}>{b.text}</p></div>
-              </TiltCard>
-            </motion.div>
-          ))}
-        </Stagger>
-      </div>
-    </section>
-  );
-}
-
-function HowItWorks() {
+/* ==========================================================================
+   8. Finale — a circle of footage opens into the call to action
+   ========================================================================== */
+function Finale() {
   const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start 75%", "end 55%"] });
-  const h = useSpring(useTransform(scrollYProgress, [0, 1], ["0%", "100%"]), { stiffness: 80, damping: 20 });
-  const steps = [
-    ["💭", "Spark an idea", "Each child comes up with their own idea for the theme — no copying from samples."],
-    ["✏️", "Draw it out", "Teachers guide with simple techniques — finger drawing, point-to-point & drawing through shapes."],
-    ["🎨", "Colour & compose", "Kids explore colours, backgrounds and composition with different media."],
-    ["🏆", "Proud creation", "A one-of-a-kind artwork — and a little more confidence after every class."],
-  ];
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ["start start", "end end"] });
+  const r = useTransform(p, [0, 0.65], [9, 80]);
+  const clipPath = useTransform(r, (v) => `circle(${v}% at 50% 66%)`);
+  const leadColor = useTransform(p, [0.3, 0.55], ["#23272a", "#ffffff"]);
+  const shade = useTransform(p, [0.35, 0.65], [0, 1]);
+  const btnO = useTransform(p, [0.55, 0.75], [0, 1]);
+  const btnY = useTransform(p, [0.55, 0.75], [24, 0]);
   return (
-    <section className="section">
-      <div className="container split" style={{ alignItems: "start" }}>
-        <div style={{ position: "sticky", top: 130 }}>
-          <Reveal><p className="eyebrow"><b>✦</b>Inside a 2-hour class</p></Reveal>
-          <Reveal delay={0.05}><h2 className="h2">How the <span className="grad-text">magic</span> happens</h2></Reveal>
-          <Reveal delay={0.1}><p className="lead">Small batches, trained child-friendly teachers and a structured syllabus with international teaching standards.</p></Reveal>
-        </div>
-        <div ref={ref} style={{ position: "relative", paddingLeft: 46 }}>
-          <div style={{ position: "absolute", left: 14, top: 0, bottom: 0, width: 5, borderRadius: 5, background: "rgba(124,92,255,.15)" }}>
-            <motion.div style={{ height: h, background: "var(--grad)", borderRadius: 5, width: "100%" }} />
-          </div>
-          <div className="grid">
-            {steps.map(([e, t, d], i) => (
-              <Reveal key={t} delay={i * 0.05}>
-                <div className="neu-panel" style={{ position: "relative", padding: "28px 30px" }}>
-                  <span style={{ position: "absolute", left: -46, top: 30, width: 34, height: 34, borderRadius: "50%", background: "var(--grad)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 800, fontSize: 14, boxShadow: "0 8px 18px -6px #7C5CFF" }}>{i + 1}</span>
-                  <div style={{ fontSize: 40, marginBottom: 8 }}>{e}</div><h3 className="h3">{t}</h3><p style={{ margin: 0, color: "var(--ink-2)" }}>{d}</p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function CourseCard({ c, i, progress }) {
-  const rotY = useTransform(progress, [0, 1], [18 - i * 4, -30 + i * 4]);
-  return (
-    <motion.div style={{ rotateY: rotY, transformPerspective: 1200, flex: "0 0 clamp(280px, 30vw, 380px)" }}>
-      <Link to={`/courses#${c.id}`} className="clay course-card" style={{ "--c": c.color, minHeight: 420 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span className="chip">{c.age}</span><span className="chip">{c.levelsCount} level{c.levelsCount > 1 ? "s" : ""}</span></div>
-        <div style={{ fontSize: 76, lineHeight: 1, margin: "26px 0 10px", filter: "drop-shadow(0 14px 14px rgba(0,0,0,.18))" }}>{c.icon}</div>
-        <span className="muted" style={{ fontWeight: 800 }}>Stage {i + 1}</span>
-        <h3>{c.name}</h3>
-        <p style={{ margin: 0, color: "var(--ink-2)" }}>{c.lead}</p>
-        <span className="link" style={{ marginTop: "auto", alignSelf: "flex-start" }}>Explore →</span>
-      </Link>
-    </motion.div>
-  );
-}
-
-function CoursesRail() {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const x = useTransform(scrollYProgress, [0, 1], ["2%", "-62%"]);
-  return (
-    <section ref={ref} style={{ height: "300vh", position: "relative" }}>
-      <div style={{ position: "sticky", top: 0, height: "100vh", display: "flex", flexDirection: "column", justifyContent: "center", overflow: "hidden" }}>
-        <div className="container"><SectionHead eyebrow="13 levels · 5 stages" icon="🎓" title={<>A creative journey from <span className="grad-text">5 to 15</span></>} /></div>
-        <motion.div style={{ x, display: "flex", gap: 28, paddingLeft: "max(var(--gutter), calc((100vw - 1280px)/2 + var(--gutter)))" }}>
-          {COURSES.map((c, i) => <CourseCard key={c.id} c={c} i={i} progress={scrollYProgress} />)}
-          <motion.div style={{ flex: "0 0 340px", display: "grid", placeItems: "center" }}>
-            <Link to="/courses" className="btn btn--lg">See every level →</Link>
-          </motion.div>
+    <section ref={ref} className="cta-circle">
+      <div className="cta-circle__stick">
+        <motion.div className="cta-circle__media" style={{ clipPath }}>
+          <Media m={{ img: "crayons-boy" }} alt="A boy holding out a handful of crayons" />
+          <motion.div style={{ position: "absolute", inset: 0, background: "rgba(18,21,23,.5)", opacity: shade }} />
         </motion.div>
-      </div>
-    </section>
-  );
-}
-
-function AgeQuiz() {
-  const [age, setAge] = useState(7);
-  const pick = age <= 7 ? COURSES[0] : age <= 9 ? COURSES[2] : age <= 12 ? COURSES[3] : COURSES[4];
-  const note = age <= 7 ? "Joining dots, cut & paste and first colours build fine motor skills." : age <= 9 ? "Ideas, shapes, backgrounds and action scenes. Foundation graduates go through Pre-Basic first." : age <= 12 ? "It’s never too late! Classes meet your child at their level — now for kids 10 & over." : "Human figures, mixed media, sketching, painting & illustration.";
-  return (
-    <section className="section--tight">
-      <div className="container">
-        <Reveal>
-          <div className="neu-panel split" style={{ gap: 40 }}>
-            <div>
-              <p className="eyebrow"><b>?</b>Quick quiz</p>
-              <h2 className="h2">How old is your little artist?</h2>
-              <input className="range" type="range" min="5" max="15" value={age} onChange={(e) => setAge(+e.target.value)} aria-label="Child's age" />
-              <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 800, fontSize: 14, marginTop: 10, color: "var(--muted)" }}><span>5 yrs</span><span>10 yrs</span><span>15 yrs</span></div>
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.div key={pick.id} className="clay" style={{ "--c": pick.color }} initial={{ rotateY: -90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} exit={{ rotateY: 90, opacity: 0 }} transition={{ duration: 0.45 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><span className="chip">Suggested start · {age} yrs</span><span style={{ fontSize: 54 }}>{pick.icon}</span></div>
-                <h3 className="h2" style={{ margin: "10px 0 8px" }}>{pick.name}</h3>
-                <p style={{ margin: "0 0 18px", color: "var(--ink-2)" }}>{note}</p>
-                <div className="btns"><Link to={`/courses#${pick.id}`} className="btn btn--glass btn--sm">See the course</Link><Link to="/contact#book" className="btn btn--sm">Book free trial</Link></div>
-              </motion.div>
-            </AnimatePresence>
+        <div className="cta-circle__copy">
+          <div>
+            <motion.p className="cta-circle__lead" style={{ color: leadColor, margin: "0 auto" }}>Their journey starts with one class.</motion.p>
+            <motion.div className="btns" style={{ justifyContent: "center", opacity: btnO, y: btnY }}>
+              <Link to="/contact#book" className="btn btn--lg">Book a free trial class <Arrow /></Link>
+              <Link to="/centres" className="btn btn--ghost btn--lg" style={{ background: "rgba(255,255,255,.14)", color: "#fff", borderColor: "rgba(255,255,255,.5)" }}>Find a centre</Link>
+            </motion.div>
           </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function WorldBand() {
-  return (
-    <section className="section band-dark" style={{ borderRadius: 48, margin: "0 clamp(8px,1.5vw,20px)" }}>
-      <div className="container split">
-        <div>
-          <Reveal><p className="eyebrow" style={{ color: "var(--ink)" }}><b>🌏</b>Global presence</p></Reveal>
-          <Reveal delay={0.05}><h2 className="h2">Loved by kids in <span className="grad-text">22 countries</span></h2></Reveal>
-          <Reveal delay={0.1}><p className="lead">Started in 1999. In India since May 2005 with SIP Academy — first in Chennai, now across 8 states.</p></Reveal>
-          <Stagger className="grid g2" style={{ marginTop: 30 }}>
-            {STATS.map((s) => (
-              <motion.div key={s.label} variants={item} className="glass glass--dark stat pad"><Counter to={s.value} suffix={s.suffix} indian={s.indian} /><span style={{ color: "rgba(255,255,255,.75)" }}>{s.label}</span></motion.div>
-            ))}
-          </Stagger>
         </div>
-        <div style={{ position: "relative", width: "100%", maxWidth: 600, aspectRatio: "1", justifySelf: "center" }}><GlobeScene dark /></div>
-      </div>
-    </section>
-  );
-}
-
-function Testimonials() {
-  return (
-    <section className="section" style={{ overflow: "hidden" }}>
-      <div className="container"><SectionHead eyebrow="Real parents, real smiles" icon="💬" title={<>“My child has opened up her <span className="grad-text">wings</span>”</>} lead="Drag the ring to spin through stories from parents across India." /></div>
-      <RingCarousel items={TESTIMONIALS} render={(t, i) => (
-        <div className="glass pad quote-card" style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-          <blockquote>{t.text}</blockquote>
-          <div className="person"><span className="avatar" style={{ background: ["#0095DA", "#FF5CA8", "#7C5CFF", "#2ED3A4"][i % 4] }}>{t.name.replace(/^(Mr|Ms|Dr)\.?\s/, "").split(" ").map((x) => x[0]).slice(0, 2).join("")}</span><span><b>{t.name}</b>{t.meta}</span></div>
-        </div>
-      )} />
-      <p className="center" style={{ marginTop: 10 }}><Link to="/stories" className="link">Read all parent stories →</Link></p>
-    </section>
-  );
-}
-
-function Happening() {
-  const cards = [
-    { img: "/assets/GClay-Web-banners-02.jpg", pos: "78% 60%", tag: "New · 6+ yrs", title: "G-Clay", text: "Sculpt & mould clay into unique handcrafted models.", to: "/courses#gclay" },
-    { img: "/assets/GA_WebPage25_Desktop-03.jpg", pos: "20% 40%", tag: "Ages 10+", title: "Never too late!", text: "Art classes that meet your child at their level.", to: "/courses#tenplus" },
-    { img: "/assets/cartoon_comic.png", pos: "50% 40%", tag: "Contest", title: "Cartoon & Comic Clash", text: "Calling all young cartoonists and comic creators!", href: LINKS.comic },
-    { img: "/assets/GA-21-Anniversary-Web-banner_1397Wx554H-px.jpg", pos: "10% 50%", tag: "Competition", title: "Kreative Star ’26", text: "An opportunity for your children to shine.", href: LINKS.kreativestar },
-  ];
-  return (
-    <section className="section">
-      <div className="container">
-        <SectionHead eyebrow="What’s new" icon="🎉" title={<>Happening at <span className="grad-text">Globalart</span></>} />
-        <Stagger className="grid g4">
-          {cards.map((c) => {
-            const inner = (
-              <div className="glass" style={{ padding: 12, height: "100%", display: "flex", flexDirection: "column" }}>
-                <LivingImage src={c.img} alt={c.title} ratio="4/3" position={c.pos} strength={10} style={{ borderRadius: 22 }} />
-                <div style={{ padding: "16px 8px 8px", display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-                  <span className="chip" style={{ alignSelf: "flex-start" }}>{c.tag}</span>
-                  <h3 className="h3" style={{ margin: "6px 0 0" }}>{c.title}</h3>
-                  <p className="muted" style={{ margin: "0 0 10px", fontSize: 15 }}>{c.text}</p>
-                  <span className="link" style={{ marginTop: "auto", alignSelf: "flex-start" }}>Explore →</span>
-                </div>
-              </div>
-            );
-            return (
-              <motion.div key={c.title} variants={item}>
-                {c.to ? <Link to={c.to} style={{ display: "block", height: "100%" }}>{inner}</Link> : <a href={c.href} target="_blank" rel="noopener" style={{ display: "block", height: "100%" }}>{inner}</a>}
-              </motion.div>
-            );
-          })}
-        </Stagger>
-      </div>
-    </section>
-  );
-}
-
-function FranchiseCta() {
-  return (
-    <section className="section--tight">
-      <div className="container">
-        <Reveal>
-          <div style={{ position: "relative", borderRadius: 44, overflow: "hidden", padding: "clamp(36px,6vw,80px)" }}>
-            <div className="liquid" style={{ width: "60%", height: "140%", left: "-10%", top: "-20%", background: "#7C5CFF" }} />
-            <div className="liquid" style={{ width: "50%", height: "120%", right: "-10%", top: "-10%", background: "#FF5CA8", animationDelay: "-4s" }} />
-            <div className="liquid" style={{ width: "40%", height: "90%", left: "35%", bottom: "-40%", background: "#0095DA", animationDelay: "-8s" }} />
-            <div className="glass split" style={{ position: "relative", padding: "clamp(26px,4vw,50px)", background: "rgba(255,255,255,.28)", color: "#fff" }}>
-              <div>
-                <p className="eyebrow" style={{ color: "var(--ink)" }}><b>🤝</b>Partner with us</p>
-                <h2 className="h2" style={{ textShadow: "0 4px 30px rgba(0,0,0,.2)" }}>Turn your love for art into a profession</h2>
-                <p style={{ fontSize: 19, opacity: 0.95 }}>Join India’s largest team of creative centre owners — a proven international programme with online & offline classes.</p>
-                <div className="btns" style={{ marginTop: 24 }}><Link to="/franchise" className="btn btn--sun btn--lg">Become a Franchisee →</Link><a href="tel:+917845741660" className="btn btn--glass btn--lg">📞 78457 41660</a></div>
-              </div>
-              <div className="grid g2">
-                {[["23", "Countries"], ["150+", "Centres in India"], ["1L+", "Students trained"], ["2005", "In India since"]].map(([v, l]) => (
-                  <TiltCard key={l} className="glass stat pad" style={{ color: "var(--ink)" }}><div className="pop"><b>{v}</b><span>{l}</span></div></TiltCard>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Reveal>
       </div>
     </section>
   );
@@ -336,21 +437,14 @@ function FranchiseCta() {
 export default function Home() {
   return (
     <>
-      <Hero />
-      <QuickFinder />
-      <div style={{ margin: "90px 0 40px" }}>
-        <Marquee items={["✏️ Draw", "🎨 Colour", "✨ Create", "💭 Imagine", "🧠 Focus", "🌟 Shine", "🏺 G-Clay"]} />
-        <Marquee variant="b" items={["Foundation", "Pre-Basic", "Basic", "Intermediate", "Advanced", "Drawing", "Painting", "Illustration"]} />
-      </div>
-      <About />
-      <Benefits />
-      <HowItWorks />
-      <CoursesRail />
-      <AgeQuiz />
-      <WorldBand />
-      <Testimonials />
-      <Happening />
-      <FranchiseCta />
+      <SketchHero />
+      <Journey />
+      <Abilities />
+      <Proof />
+      <Steps />
+      <Voices />
+      <Finder />
+      <Finale />
     </>
   );
 }

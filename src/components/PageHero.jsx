@@ -1,20 +1,22 @@
 import { Link } from "react-router-dom";
-import { Reveal, SplitHeading } from "./ui/index.jsx";
+import { motion } from "framer-motion";
+import { FilmHero, Lines } from "./ui/index.jsx";
 
-export default function PageHero({ crumb, eyebrow, icon = "✦", title, gradientWords = [], lead, scene, children }) {
+/** Shared inner-page hero: full-bleed film, masked headline, breadcrumb. */
+export default function PageHero({ video, img, crumb, eyebrow, lines, lead, children, scene = "Scene 02" }) {
   return (
-    <section className="phero">
-      <div className="phero__3d">{scene}</div>
-      <div className="container phero__grid">
-        <div>
-          <Reveal><p className="crumbs"><Link to="/">Home</Link> / <span>{crumb}</span></p></Reveal>
-          {eyebrow && <Reveal delay={0.05}><p className="eyebrow"><b>{icon}</b>{eyebrow}</p></Reveal>}
-          <SplitHeading text={title} gradientWords={gradientWords} className="h1" />
-          {lead && <Reveal delay={0.4}><p className="lead">{lead}</p></Reveal>}
-          {children && <Reveal delay={0.5}>{children}</Reveal>}
-        </div>
-        <div />
-      </div>
-    </section>
+    <FilmHero video={video} img={img} alt={crumb} className="phero" scene={scene} place={crumb}>
+      <motion.div className="crumb mono" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1 }}>
+        <Link to="/">Globalart</Link><span>/</span><span style={{ color: "#fff" }}>{crumb}</span>
+      </motion.div>
+      {eyebrow && <motion.p className="eyebrow" style={{ color: "rgba(255,255,255,.75)" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}>{eyebrow}</motion.p>}
+      <Lines lines={lines} className="h1" delay={1.1} />
+      {(lead || children) && (
+        <motion.div className="hero__meta" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.6, duration: 1 }}>
+          {lead && <p>{lead}</p>}
+          {children}
+        </motion.div>
+      )}
+    </FilmHero>
   );
 }

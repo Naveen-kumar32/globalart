@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
-import { burst } from "./ui/index.jsx";
+import { Arrow } from "./ui/index.jsx";
 
 function Field({ f, bad }) {
   const id = "f-" + f.name.replace(/\W+/g, "");
@@ -18,7 +18,7 @@ function Field({ f, bad }) {
   );
 }
 
-/** A neumorphic form that composes an email (no server needed). */
+/** A form that composes an email (no server needed). */
 export default function MailForm({ to, subject, fields, submitLabel, success, footer, before, extraLines }) {
   const ref = useRef(null);
   const [bad, setBad] = useState({});
@@ -32,37 +32,35 @@ export default function MailForm({ to, subject, fields, submitLabel, success, fo
     const b = {};
     [...form.elements].forEach((el) => { if (el.name && ((el.required && el.disabled) || (!el.disabled && !el.checkValidity()))) b[el.name] = true; });
     setBad(b);
-    if (Object.keys(b).length) { setErr("Oops! Please fill in the highlighted fields 🙂"); shaker.start({ x: [0, -14, 12, -8, 6, 0], transition: { duration: 0.5 } }); return; }
+    if (Object.keys(b).length) { setErr("Please fill in the highlighted fields."); shaker.start({ x: [0, -12, 10, -6, 4, 0], transition: { duration: 0.5 } }); return; }
     setErr("");
     const lines = [];
     new FormData(form).forEach((v, k) => v && lines.push(`${k}: ${v}`));
     if (extraLines) lines.push("", ...extraLines());
     const body = `${subject}\n\n${lines.join("\n")}\n\nSent from the Globalart website`;
     window.location.href = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    const r = form.getBoundingClientRect();
-    burst(r.left + r.width / 2, r.top + r.height / 2, 60);
     setSent(true);
   };
 
   return (
-    <motion.div className="neu-panel" animate={shaker}>
+    <motion.div className="form-panel" animate={shaker}>
       <AnimatePresence mode="wait">
         {sent ? (
-          <motion.div key="ok" className="center" initial={{ rotateY: -90, opacity: 0 }} animate={{ rotateY: 0, opacity: 1 }} style={{ padding: "30px 0" }}>
-            <motion.div style={{ fontSize: 80 }} animate={{ y: [0, -14, 0], rotate: [0, 10, -10, 0] }} transition={{ repeat: Infinity, duration: 2 }}>🎉</motion.div>
-            <h3 className="h2">Yay! Almost done</h3>
-            <p className="lead" style={{ margin: "0 auto 20px" }}>{success}</p>
-            <button className="btn btn--neu" onClick={() => setSent(false)}>← Edit details</button>
+          <motion.div key="ok" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} style={{ padding: "30px 0" }}>
+            <p className="eyebrow">Almost done</p>
+            <h3 className="h2">Thank <em>you.</em></h3>
+            <p className="lead" style={{ marginBottom: 28 }}>{success}</p>
+            <button className="btn btn--ghost" onClick={() => setSent(false)}>Edit details</button>
           </motion.div>
         ) : (
-          <motion.form key="form" ref={ref} className="form" noValidate onSubmit={submit} onInput={(e) => e.target.name && bad[e.target.name] && setBad((b) => ({ ...b, [e.target.name]: false }))} exit={{ rotateY: 90, opacity: 0 }}>
+          <motion.form key="form" ref={ref} className="form" noValidate onSubmit={submit} onInput={(e) => e.target.name && bad[e.target.name] && setBad((x) => ({ ...x, [e.target.name]: false }))} exit={{ opacity: 0, y: -20 }}>
             {before}
             {fields.map((f, i) => Array.isArray(f)
               ? <div key={i} className="row2">{f.map((x) => <Field key={x.name} f={x} bad={bad[x.name]} />)}</div>
               : <Field key={f.name} f={f} bad={bad[f.name]} />)}
-            <button className="btn btn--lg btn--block" type="submit">{submitLabel}</button>
-            <p className="note err" role="status">{err}</p>
             {footer}
+            <button className="btn btn--lg btn--block" type="submit">{submitLabel} <Arrow /></button>
+            <p className="note err" role="status">{err}</p>
           </motion.form>
         )}
       </AnimatePresence>

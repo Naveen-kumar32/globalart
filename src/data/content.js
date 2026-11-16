@@ -131,12 +131,12 @@ export const FAQS = [
 ];
 
 export const OFFICES = [
-  { tag: "All India", name: "Ms. Namrata Mukherjee", role: "Business Head – All India", addr: "M-71, 1st Floor (Mezzanine), M Block Market, GK 2, New Delhi-110048", phone: "+91 99714 67770", email: "namrata@sipacademyindia.com" },
-  { tag: "Tamil Nadu", name: "Mr. Mangalsamy", role: "State Head – Tamil Nadu", addr: "Apex Chambers, 1st Floor, 35 Sir Thyagaraya Road, Pondy Bazaar, T. Nagar, Chennai – 600 017", phone: "+91 95662 62366", email: "mangal@sipacademyindia.com" },
-  { tag: "Chennai", name: "Ms. Sumathi Ravi", role: "Area Head – Chennai North & West", addr: "Apex Chambers, Pondy Bazaar, T. Nagar, Chennai", phone: "+91 99403 79144", email: "sumathi@sipacademyindia.com" },
-  { tag: "Western TN", name: "Mr. Sabarish S", role: "Associate Area Head – Western Tamil Nadu", addr: "", phone: "+91 90030 34116", email: "sabarish@sipacademyindia.com" },
-  { tag: "Karnataka", name: "Mr. Saliil Arakkal", role: "State Head – Karnataka", addr: "Prestige Tech Platina, Outer Ring Road, Kadubeesanahalli, Bengaluru – 560 103", phone: "+91 96110 60022", email: "saliil@sipacademyindia.com" },
-  { tag: "AP & Telangana", name: "Mr. Srinivas Mashetty", role: "State Head – AP & Telangana", addr: "Sterling House, Paigah Colony, Patigadda, Secunderabad – 500003", phone: "+91 99663 47744", email: "srinivas@sipacademyindia.com" },
+  { tag: "All India", name: "Ms. Namrata Mukherjee", photo: "/team/namrata.jpg", role: "Business Head – All India", addr: "M-71, 1st Floor (Mezzanine), M Block Market, GK 2, New Delhi-110048", phone: "+91 99714 67770", email: "namrata@sipacademyindia.com" },
+  { tag: "Tamil Nadu", name: "Mr. Mangalsamy", photo: "/team/mangalsamy.jpg", role: "State Head – Tamil Nadu", addr: "Apex Chambers, 1st Floor, 35 Sir Thyagaraya Road, Pondy Bazaar, T. Nagar, Chennai – 600 017", phone: "+91 95662 62366", email: "mangal@sipacademyindia.com" },
+  { tag: "Chennai", name: "Ms. Sumathi Ravi", photo: "/team/sumathi.jpg", role: "Area Head – Chennai North & West", addr: "Apex Chambers, Pondy Bazaar, T. Nagar, Chennai", phone: "+91 99403 79144", email: "sumathi@sipacademyindia.com" },
+  { tag: "Western TN", name: "Mr. Sabarish S", photo: "/team/sabarish.jpg", role: "Associate Area Head – Western Tamil Nadu", addr: "", phone: "+91 90030 34116", email: "sabarish@sipacademyindia.com" },
+  { tag: "Karnataka", name: "Mr. Saliil Arakkal", photo: "/team/saliil.jpg", role: "State Head – Karnataka", addr: "Prestige Tech Platina, Outer Ring Road, Kadubeesanahalli, Bengaluru – 560 103", phone: "+91 96110 60022", email: "saliil@sipacademyindia.com" },
+  { tag: "AP & Telangana", name: "Mr. Srinivas Mashetty", photo: "/team/srinivas.jpg", role: "State Head – AP & Telangana", addr: "Sterling House, Paigah Colony, Patigadda, Secunderabad – 500003", phone: "+91 99663 47744", email: "srinivas@sipacademyindia.com" },
 ];
 
 export const INDIA_STATES = ["Andhra Pradesh", "Andaman and Nicobar Islands", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh", "Chhattisgarh", "Dadra and Nagar Haveli", "Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Lakshadweep", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"];
@@ -154,4 +154,13 @@ export const LINKS = {
   youtube: "https://www.youtube.com/channel/UCr-OUqgG0U6vEycU5cJvYYg",
   twitter: "https://twitter.com/globalartindia",
   sip: "http://www.sipacademyindia.com/",
+};
+
+/** Photo or video for each course stage (files in public/media). */
+export const COURSE_MEDIA = {
+  foundation: { video: "hands-drawing" },
+  prebasic: { video: "boy-sketch" },
+  basic: { img: "girls-drawing" },
+  intermediate: { img: "class-painting" },
+  advanced: { img: "showing-art" },
 };

@@ -1,61 +1,57 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import PageHero from "../components/PageHero.jsx";
-import { StoriesScene } from "../components/three/Scenes.jsx";
-import { Reveal, Stagger, item, TiltCard, RingCarousel } from "../components/ui/index.jsx";
+import { Reveal, Stagger, item, SectionHead, Tilt, Arrow, QuoteSlider, Video } from "../components/ui/index.jsx";
 import { TESTIMONIALS, LINKS } from "../data/content.js";
 
-const C = ["#0095DA", "#FF5CA8", "#7C5CFF", "#2ED3A4", "#FFC93C", "#FF8A5B"];
-const initials = (n) => n.replace(/^(Mr|Ms|Dr)\.?\s/, "").split(" ").map((x) => x[0]).slice(0, 2).join("");
+function Film() {
+  const [play, setPlay] = useState(false);
+  return (
+    <div className="vcard" style={{ aspectRatio: "16/9" }} data-cursor={play ? undefined : "Play"}>
+      {play ? (
+        <video src={LINKS.video} controls autoPlay playsInline style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", background: "#000" }} />
+      ) : (
+        <button onClick={() => setPlay(true)} aria-label="Play the parent testimonial video" style={{ position: "absolute", inset: 0, width: "100%" }}>
+          <Video name="colouring-hands" />
+          <div className="shade-b" /><div className="vignette" />
+          <motion.span initial={{ scale: 0.8 }} whileInView={{ scale: 1 }} style={{ position: "absolute", left: "50%", top: "50%", translateX: "-50%", translateY: "-50%", width: 110, height: 110, borderRadius: "50%", display: "grid", placeItems: "center", zIndex: 2 }} className="glass">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="#0095DA" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+          </motion.span>
+          <span className="vcard__body mono" style={{ textAlign: "left" }}>Testimonial · SIP Academy 20 years</span>
+        </button>
+      )}
+    </div>
+  );
+}
 
 export default function Stories() {
   return (
     <>
-      <PageHero crumb="Parent Stories" eyebrow="Real parents, real smiles" icon="💬" title="Little changes. Big smiles." gradientWords={[2, 3]}
-        lead="Parents of Globalart children share the change for the better they’ve seen — at home, in school and beyond." scene={<StoriesScene />} />
+      <PageHero img="showing-art" crumb="Stories" eyebrow="From parents across India" lines={["Small hands,", "*big changes.*"]}
+        lead="Real words from the parents of Globalart children — about confidence, focus and the joy of creating." />
 
-      <section className="section--tight" style={{ paddingTop: 0 }}>
-        <div className="container">
-          <Reveal>
-            <TiltCard className="glass" max={4} style={{ padding: 12, borderRadius: 36, maxWidth: 1000, margin: "0 auto" }}>
-              <video src={LINKS.video} controls preload="none" playsInline poster="/assets/globalart-overview.jpg" style={{ width: "100%", borderRadius: 26, aspectRatio: "16/9", objectFit: "cover", background: "#14123A" }} />
-            </TiltCard>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="section" style={{ overflow: "hidden" }}>
-        <div className="container section-head"><Reveal><h2 className="h2">Spin the <span className="grad-text">story ring</span></h2></Reveal><Reveal delay={0.05}><p className="lead">Drag to rotate through stories from parents across India.</p></Reveal></div>
-        <RingCarousel items={TESTIMONIALS} render={(t, i) => (
-          <div className="clay" style={{ "--c": C[i % C.length], height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-            <div className="quote-card"><blockquote>{t.text}</blockquote></div>
-            <div className="person"><span className="avatar" style={{ background: C[i % C.length] }}>{initials(t.name)}</span><span><b>{t.name}</b>{t.meta}</span></div>
-          </div>
-        )} />
-      </section>
-
-      <section className="section" style={{ paddingTop: 0 }}>
-        <div className="container">
-          <Stagger className="grid g3">
-            {TESTIMONIALS.map((t, i) => (
-              <motion.div key={t.name} variants={item}>
-                <TiltCard className="glass pad quote-card" max={8} style={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                  <blockquote>{t.text}</blockquote>
-                  <div className="person"><span className="avatar" style={{ background: C[i % C.length] }}>{initials(t.name)}</span><span><b>{t.name}</b>{t.meta}</span></div>
-                </TiltCard>
-              </motion.div>
-            ))}
-          </Stagger>
+      <section className="section">
+        <div className="container split" style={{ alignItems: "start" }}>
+          <div><p className="eyebrow">In their words</p><QuoteSlider quotes={TESTIMONIALS} interval={8000} /></div>
+          <Film />
         </div>
       </section>
 
       <section className="section--tight">
         <div className="container">
-          <Reveal><div className="neu-panel center" style={{ padding: "clamp(34px,6vw,80px)" }}>
-            <h2 className="h1" style={{ fontSize: "clamp(34px,5vw,70px)" }}>Write your child’s <span className="grad-text">story next</span></h2>
-            <p className="lead" style={{ margin: "0 auto 26px" }}>Start with a free trial class at a centre near you.</p>
-            <div className="btns" style={{ justifyContent: "center" }}><Link to="/contact#book" className="btn btn--lg">Book a Free Trial ✏️</Link><Link to="/centres" className="btn btn--neu btn--lg">📍 Find a Centre</Link></div>
-          </div></Reveal>
+          <SectionHead eyebrow="All stories" lines={["Every family,", "a *different* story."]} />
+          <Stagger className="grid g2" style={{ marginTop: 60 }}>
+            {TESTIMONIALS.map((t) => (
+              <motion.div key={t.name} variants={item}>
+                <Tilt className="glass pad" style={{ height: "100%" }}>
+                  <p className="serif" style={{ fontSize: "clamp(22px,2vw,28px)", lineHeight: 1.3, margin: 0 }}>“{t.text}”</p>
+                  <div className="qmeta"><b>{t.name}</b><span>{t.meta}</span></div>
+                </Tilt>
+              </motion.div>
+            ))}
+          </Stagger>
+          <Reveal><div className="btns" style={{ justifyContent: "center", marginTop: 70 }}><Link to="/contact#book" className="btn btn--lg">Start your child’s story <Arrow /></Link></div></Reveal>
         </div>
       </section>
     </>
