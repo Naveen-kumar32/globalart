@@ -19,6 +19,8 @@ npm start                   # serves dist/ and the API on PORT (default 5190)
 
 Environment variables (all optional): `PORT`, `DATA_DIR` (where staff data is stored, default `server/data/`), `TRUST_PROXY` (set to `1` when running behind a load balancer or HTTPS proxy so secure cookies and rate limits work correctly), `CODE_SECRET` (otherwise generated into `DATA_DIR/secret.key`).
 
+`ADMIN_EMAIL` + `ADMIN_PASSWORD` (10+ characters, optional `ADMIN_NAME`): if set, that admin account is created or refreshed on every start. Use this on hosts without a shell. On Render's free plan there is no persistent disk, so staff codes are lost whenever the app restarts or redeploys (including after it sleeps); the admin from these variables is recreated automatically. For real use, add a disk and set `DATA_DIR` to its mount path.
+
 ## Staff login
 
 - **Login** button in the nav → `/login`.

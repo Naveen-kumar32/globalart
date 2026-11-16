@@ -5,6 +5,19 @@ import express from "express";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { api } from "./api.js";
+import { createAdmin } from "./store.js";
+
+// Optional: create/refresh an admin from environment variables on every start.
+// Handy on hosts without a shell or persistent disk (e.g. Render's free plan).
+if (process.env.ADMIN_EMAIL || process.env.ADMIN_PASSWORD) {
+  const email = process.env.ADMIN_EMAIL || "", password = process.env.ADMIN_PASSWORD || "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || password.length < 10) {
+    console.error("ADMIN_EMAIL must be a valid email and ADMIN_PASSWORD at least 10 characters — admin not created.");
+  } else {
+    createAdmin({ email, name: process.env.ADMIN_NAME || "Globalart Admin", password });
+    console.log(`Admin account ready: ${email}`);
+  }
+}
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const isProd = process.env.NODE_ENV === "production" || process.argv.includes("--production");
